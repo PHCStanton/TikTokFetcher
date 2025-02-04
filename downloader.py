@@ -47,7 +47,10 @@ class TikTokDownloader:
 
     async def init_session(self):
         if not self.session:
-            self.session = aiohttp.ClientSession(headers=self.mobile_headers)
+            self.session = aiohttp.ClientSession(
+                headers=self.mobile_headers,
+                compression=aiohttp.ContentEncodingType.BROTLI
+            )
 
     async def cleanup(self):
         if self.session:
