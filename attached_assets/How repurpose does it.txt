@@ -1,0 +1,20 @@
+ow Repurpose.io Works with TikTok
+
+    Authorized API Integration:
+        Repurpose.io integrates directly with TikTok using its official API. Users connect their TikTok accounts through OAuth, granting Repurpose.io permission to access and interact with their content within the boundaries of TikTok's policies 23.
+        This integration allows Repurpose.io to perform actions like uploading videos, repurposing content for other platforms, and automating workflows without violating TikTok's terms of service 12.
+    Automated Content Management:
+        Once connected, Repurpose.io automates tasks such as downloading TikTok videos (including removing watermarks) and publishing them to other platforms like YouTube Shorts, Instagram, Facebook, and Google Drive 37.
+        The platform uses workflows that source content from TikTok and distribute it across multiple channels, adhering to the limitations set by TikTok's API (e.g., maximum video length of 60 seconds for uploads) 23.
+    Compliance with Restrictions:
+        Repurpose.io does not bypass TikTok's restrictions but works within the framework provided by the API. For instance, downloading videos without a watermark is allowed because users explicitly grant permission during the setup process 37.
+        It avoids unauthorized scraping or bulk downloading techniques that would violate TikTok's terms of service.
+
+Techniques Likely Used
+
+    OAuth Authentication: Ensures secure access to user accounts while complying with TikTok's API guidelines 23.
+    API Rate Management: Operates within request limits imposed by TikTok's API, avoiding excessive or unauthorized requests 5.
+    Automation: Simplifies repetitive tasks like repurposing and publishing videos across platforms, saving users time and effort 13.
+
+Summary
+Repurpose.io does not bypass TikTok's API restrictions but instead uses authorized methods to automate content management. By integrating directly with TikTok's API and adhering to its rules, Repurpose.io provides a legal and efficient way for users to repurpose their content across platforms.
