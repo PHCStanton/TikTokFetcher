@@ -8,7 +8,7 @@ class TikTokAuth:
     def __init__(self):
         self.client_key = os.getenv('TIKTOK_CLIENT_KEY')
         self.client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
-        self.redirect_uri = os.getenv('TIKTOK_REDIRECT_URI')
+        self.redirect_uri = os.getenv('TIKTOK_REDIRECT_URI', 'https://fetchtok.replit.app/callback')
         self.is_development = os.getenv('DEVELOPMENT_MODE', 'true').lower() == 'true'
         if self.is_development:
             self.auth_base_url = "https://open-api-test.tiktok.com/platform/oauth/connect/"
