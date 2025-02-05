@@ -9,10 +9,11 @@ from rich.console import Console
 from typing import List, Optional, Dict
 
 class TikTokDownloader:
-    def __init__(self):
+    def __init__(self, access_token=None):
         self.session = None
         self.console = Console()
         self.max_retries = 3
+        self.access_token = access_token
         self.rate_limit_delay = 1.0  # Delay between requests in seconds
         self.concurrent_downloads = 3  # Maximum concurrent downloads
         self.semaphore = asyncio.Semaphore(self.concurrent_downloads)
