@@ -14,8 +14,8 @@ class TikTokDownloader:
         self.console = Console()
         self.max_retries = 3
         self.access_token = access_token
-        self.rate_limit_delay = 1.0  # Delay between requests in seconds
-        self.concurrent_downloads = 3  # Maximum concurrent downloads
+        self.rate_limit_delay = 1.0
+        self.concurrent_downloads = 3
         self.semaphore = asyncio.Semaphore(self.concurrent_downloads)
         self.last_request_time = 0
         self.mobile_headers = {
@@ -47,11 +47,13 @@ class TikTokDownloader:
         }
 
     async def init_session(self):
-        if not self.session:
+        """Initialize aiohttp session if not already initialized"""
+        if self.session is None or self.session.closed:
             self.session = aiohttp.ClientSession(
                 headers=self.mobile_headers,
                 compress=True
             )
+        return self.session
 
     async def cleanup(self):
         if self.session:
@@ -59,9 +61,10 @@ class TikTokDownloader:
 
     async def _get_video_url(self, url: str) -> Optional[str]:
         """Get the actual video URL from TikTok"""
+        session = await self.init_session()
         try:
             # Try mobile user agent first
-            async with self.session.get(url, allow_redirects=True) as response:
+            async with session.get(url, allow_redirects=True) as response:
                 if response.status != 200:
                     # If mobile fails, try desktop user agent
                     async with aiohttp.ClientSession(headers=self.desktop_headers) as desktop_session:
@@ -95,7 +98,7 @@ class TikTokDownloader:
 
                         # Verify if the URL is accessible
                         try:
-                            async with self.session.head(video_url) as vid_response:
+                            async with session.head(video_url) as vid_response:
                                 if vid_response.status == 200:
                                     self.console.print(f"[green]Found valid video URL[/green]")
                                     return video_url
@@ -130,6 +133,7 @@ class TikTokDownloader:
                     self.console.print(f"[red]Failed to download {url}: {str(result)}[/red]")
 
     async def _download_single_video(self, url: str, progress):
+        session = await self.init_session()
         async with self.semaphore:
             video_id = await self._extract_video_id(url)
             if not video_id:
@@ -151,7 +155,7 @@ class TikTokDownloader:
                         progress.update(download_task, description=f"[red]Failed to get video URL for {video_id}[/red]")
                         return
 
-                    async with self.session.get(video_url) as response:
+                    async with session.get(video_url) as response:
                         if response.status != 200:
                             raise aiohttp.ClientError(f"HTTP {response.status}")
 
@@ -186,10 +190,11 @@ class TikTokDownloader:
         self.last_request_time = time.time()
 
     async def _extract_video_id(self, url: str) -> Optional[str]:
+        session = await self.init_session()
         # First, resolve any shortened URLs
         if 'vm.tiktok.com' in url or 't.tiktok.com' in url:
             try:
-                async with self.session.get(url, allow_redirects=True) as response:
+                async with session.get(url, allow_redirects=True) as response:
                     if response.status == 200:
                         url = str(response.url)
             except Exception as e:

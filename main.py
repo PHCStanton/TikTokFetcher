@@ -1,4 +1,3 @@
-
 import asyncio
 import sys
 from rich.console import Console
@@ -11,25 +10,50 @@ console = Console()
 
 async def main():
     console.print("[bold green]TikTok Video Downloader[/bold green]")
-    
+
     # Initialize auth
     auth = TikTokAuth()
-    
-    # Get auth URL
-    auth_url = auth.get_auth_url()
-    console.print(f"\n[yellow]Please visit this URL to authenticate:[/yellow]\n{auth_url}")
-    
-    # Get the authorization code from user
-    auth_code = Prompt.ask("\nEnter the authorization code from the callback URL")
-    
-    # Get access token
-    token_data = await auth.get_access_token(auth_code)
-    if not token_data:
-        console.print("[red]Authentication failed. Exiting...[/red]")
-        return
-        
-    access_token = token_data.get('access_token')
-    
+
+    while True:
+        try:
+            # Get auth URL
+            auth_url = auth.get_auth_url()
+            console.print(f"\n[yellow]Please visit this URL to authenticate:[/yellow]\n{auth_url}")
+
+            # Get the authorization code from user
+            auth_code = Prompt.ask("\nEnter the authorization code from the callback URL (or 'q' to quit)")
+
+            if auth_code.lower() == 'q':
+                console.print("[yellow]Exiting...[/yellow]")
+                return
+
+            # Get access token
+            token_data = await auth.get_access_token(auth_code)
+            if not token_data:
+                console.print("[red]Authentication failed. Would you like to try again? (y/n)[/red]")
+                retry = Prompt.ask("").lower()
+                if retry != 'y':
+                    return
+                continue
+
+            access_token = token_data.get('access_token')
+            if not access_token:
+                console.print("[red]Invalid token response. Would you like to try again? (y/n)[/red]")
+                retry = Prompt.ask("").lower()
+                if retry != 'y':
+                    return
+                continue
+
+            break  # Successfully authenticated
+
+        except Exception as e:
+            console.print(f"[red]Authentication error: {str(e)}[/red]")
+            console.print("[yellow]Would you like to try again? (y/n)[/yellow]")
+            retry = Prompt.ask("").lower()
+            if retry != 'y':
+                return
+            continue
+
     # Get URLs from command line arguments if provided, otherwise prompt user
     urls = sys.argv[1:] if len(sys.argv) > 1 else []
 

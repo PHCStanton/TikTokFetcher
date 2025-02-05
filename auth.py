@@ -1,4 +1,3 @@
-
 import os
 from rich.console import Console
 import aiohttp
@@ -13,20 +12,24 @@ class TikTokAuth:
         self.console = Console()
         self.auth_base_url = "https://open-api.tiktok.com/platform/oauth/connect/"
         self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
-        
-    def get_auth_url(self, csrf_state: str = None) -> str:
+
+    def get_auth_url(self, csrf_state: Optional[str] = None) -> str:
         """Generate TikTok OAuth URL"""
         params = {
             'client_key': self.client_key,
             'redirect_uri': self.redirect_uri,
             'response_type': 'code',
             'scope': 'user.info.basic,video.list',
-            'state': csrf_state or 'default_state'
+            'state': csrf_state if csrf_state is not None else 'default_state'
         }
         return f"{self.auth_base_url}?{urlencode(params)}"
-        
+
     async def get_access_token(self, code: str) -> Optional[Dict]:
         """Exchange authorization code for access token"""
+        if not all([self.client_key, self.client_secret, code]):
+            self.console.print("[red]Missing required authentication parameters[/red]")
+            return None
+
         try:
             async with aiohttp.ClientSession() as session:
                 payload = {
@@ -35,13 +38,13 @@ class TikTokAuth:
                     'code': code,
                     'grant_type': 'authorization_code'
                 }
-                
+
                 async with session.post(self.token_url, data=payload) as response:
                     if response.status == 200:
                         return await response.json()
                     self.console.print(f"[red]Auth failed: {response.status}[/red]")
                     return None
-                    
+
         except Exception as e:
             self.console.print(f"[red]Auth error: {str(e)}[/red]")
             return None
