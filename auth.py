@@ -9,6 +9,10 @@ class TikTokAuth:
         self.client_key = os.getenv('TIKTOK_CLIENT_KEY')
         self.client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
         self.redirect_uri = os.getenv('TIKTOK_REDIRECT_URI')
+        self.is_development = os.getenv('DEVELOPMENT_MODE', 'true').lower() == 'true'
+        if self.is_development:
+            self.auth_base_url = "https://open-api-test.tiktok.com/platform/oauth/connect/"
+            self.token_url = "https://open-api-test.tiktok.com/oauth/access_token/"
         self.console = Console()
         self.auth_base_url = "https://open-api.tiktok.com/platform/oauth/connect/"
         self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
