@@ -14,26 +14,27 @@ class TikTokAuth:
         if not all([self.client_key, self.client_secret]):
             raise ValueError("Missing required environment variables. Please check TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET")
 
-        # Use test endpoints in development mode
+        # Set up the correct endpoints
         if self.is_development:
-            self.auth_base_url = "https://open-api-test.tiktok.com/platform/oauth/connect/"
-            self.token_url = "https://open-api-test.tiktok.com/oauth/access_token/"
+            self.auth_base_url = "https://www.tiktok.com/auth/authorize/"
+            self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
             self.redirect_uri = f"https://{os.getenv('REPL_SLUG')}.{os.getenv('REPL_OWNER')}.repl.co/auth/tiktok/callback"
         else:
-            self.auth_base_url = "https://open-api.tiktok.com/platform/oauth/connect/"
+            self.auth_base_url = "https://www.tiktok.com/auth/authorize/"
             self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
 
         self.console = Console()
 
     def get_auth_url(self, csrf_state: Optional[str] = None) -> str:
-        """Generate TikTok OAuth URL"""
+        """Generate TikTok OAuth URL with updated parameters"""
         try:
             params = {
                 'client_key': self.client_key,
                 'redirect_uri': self.redirect_uri,
                 'response_type': 'code',
                 'scope': 'user.info.basic,video.list',
-                'state': csrf_state if csrf_state is not None else 'default_state'
+                'state': csrf_state if csrf_state is not None else 'default_state',
+                'platform': 'web'
             }
             return f"{self.auth_base_url}?{urlencode(params)}"
         except Exception as e:
