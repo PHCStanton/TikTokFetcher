@@ -1,7 +1,7 @@
 import os
 from rich.console import Console
 import aiohttp
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict
 from urllib.parse import urlencode, urlparse
 
 class TikTokAuth:
@@ -9,23 +9,16 @@ class TikTokAuth:
         self.client_key = os.getenv('TIKTOK_CLIENT_KEY')
         self.client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
         self.redirect_uri = os.getenv('TIKTOK_REDIRECT_URI', 'https://api.tiktokrescue.online/auth/tiktok/callback')
-        self.base_domain = os.getenv('TIKTOK_BASE_DOMAIN', 'tiktokrescue.online')
         self.is_development = os.getenv('DEVELOPMENT_MODE', 'false').lower() == 'true'
 
-        if not all([self.client_key, self.client_secret, self.redirect_uri]):
-            raise ValueError("Missing required environment variables. Please check TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET, and TIKTOK_REDIRECT_URI")
-
-        # Verify domain configuration
-        redirect_domain = urlparse(self.redirect_uri).netloc
-        if not redirect_domain.endswith(self.base_domain) and not self.is_development:
-            raise ValueError(f"Redirect URI domain {redirect_domain} does not match base domain {self.base_domain}")
+        if not all([self.client_key, self.client_secret]):
+            raise ValueError("Missing required environment variables. Please check TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET")
 
         # Use test endpoints in development mode
         if self.is_development:
             self.auth_base_url = "https://open-api-test.tiktok.com/platform/oauth/connect/"
             self.token_url = "https://open-api-test.tiktok.com/oauth/access_token/"
-            if not self.redirect_uri or '.replit.app' in self.redirect_uri:
-                self.redirect_uri = "https://fetchtok.replit.dev/callback"  # Development callback URL
+            self.redirect_uri = f"https://{os.getenv('REPL_SLUG')}.{os.getenv('REPL_OWNER')}.repl.co/auth/tiktok/callback"
         else:
             self.auth_base_url = "https://open-api.tiktok.com/platform/oauth/connect/"
             self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
@@ -33,7 +26,7 @@ class TikTokAuth:
         self.console = Console()
 
     def get_auth_url(self, csrf_state: Optional[str] = None) -> str:
-        """Generate TikTok OAuth URL with proper domain verification"""
+        """Generate TikTok OAuth URL"""
         try:
             params = {
                 'client_key': self.client_key,
@@ -48,7 +41,7 @@ class TikTokAuth:
             raise
 
     async def get_access_token(self, code: str) -> Optional[Dict]:
-        """Exchange authorization code for access token with improved error handling"""
+        """Exchange authorization code for access token"""
         if not code:
             self.console.print("[red]Authorization code is required[/red]")
             return None
