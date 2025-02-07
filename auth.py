@@ -15,13 +15,10 @@ class TikTokAuth:
             raise ValueError("Missing required environment variables. Please check TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET")
 
         # Set up the correct endpoints
-        if self.is_development:
-            self.auth_base_url = "https://www.tiktok.com/auth/authorize/"
-            self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
-            self.redirect_uri = f"https://{os.getenv('REPL_SLUG')}.{os.getenv('REPL_OWNER')}.repl.co/auth/tiktok/callback"
-        else:
-            self.auth_base_url = "https://www.tiktok.com/auth/authorize/"
-            self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
+        # Always use development endpoints while domain verification is pending
+        self.auth_base_url = "https://www.tiktok.com/auth/authorize/"
+        self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
+        self.redirect_uri = f"https://{os.getenv('REPL_SLUG')}.{os.getenv('REPL_OWNER')}.repl.co/auth/tiktok/callback"
 
         self.console = Console()
 
