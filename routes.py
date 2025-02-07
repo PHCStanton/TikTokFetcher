@@ -22,8 +22,9 @@ def tiktok_callback():
 @static_pages.route('/privacy')
 def privacy_policy():
     return render_template_string("""
-        <h1>Privacy Policy for FetchTok</h1>
+        <h1>Privacy Policy for TikTok Rescue</h1>
         <p>Last updated: February 06, 2025</p>
+        <p>This web application complies with TikTok's API Terms of Service and data protection regulations.</p>
 
         <p>This Privacy Policy describes how FetchTok ("we", "us", or "our") collects, uses, and discloses your information when you use our service.</p>
 
