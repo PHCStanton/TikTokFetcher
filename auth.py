@@ -10,7 +10,7 @@ class TikTokAuth:
     def __init__(self):
         self.client_key = os.getenv('TIKTOK_CLIENT_KEY')
         self.client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
-        self.is_development = True  # Using development mode
+        self.is_development = True  # Forcing development mode
         self.is_sandbox = False  # Disable sandbox mode since endpoints are not accessible
         self.retry_count = 0
         self.max_retries = 3
@@ -44,7 +44,10 @@ class TikTokAuth:
                 'scope': 'user.info.basic,video.list',
                 'state': csrf_state if csrf_state is not None else 'default_state'
             }
-            return f"{self.auth_base_url}?{urlencode(params)}"
+
+            auth_url = f"{self.auth_base_url}?{urlencode(params)}"
+            self.console.print(f"[green]Generated auth URL for development mode: {auth_url}[/green]")
+            return auth_url
         except Exception as e:
             self.console.print(f"[red]Error generating auth URL: {str(e)}[/red]")
             raise
@@ -73,8 +76,11 @@ class TikTokAuth:
                         'client_secret': self.client_secret,
                         'code': code,
                         'grant_type': 'authorization_code',
-                        'redirect_uri': self.redirect_uri  # Include redirect_uri in token request
+                        'redirect_uri': self.redirect_uri
                     }
+
+                    self.console.print(f"[green]Attempting to get access token in development mode[/green]")
+                    self.console.print(f"[blue]Using token URL: {self.token_url}[/blue]")
 
                     async with session.post(self.token_url, data=payload) as response:
                         if response.status == 200:
