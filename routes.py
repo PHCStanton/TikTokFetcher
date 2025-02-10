@@ -53,22 +53,10 @@ def tiktok_callback():
         """, error=str(e))
 
 @static_pages.route('/privacy')
-def privacy_policy():
+def privacy():
     return render_template_string("""
-        <h1>Privacy Policy for FetchTok</h1>
-        <p>Last updated: February 10, 2025</p>
-
-        <p>This Privacy Policy describes how FetchTok ("we", "us", or "our") collects, uses, and discloses your information when you use our service.</p>
-
-        <h2>Information We Collect</h2>
-        <p>We only collect information necessary to provide the TikTok video downloading service, including:</p>
-        <ul>
-            <li>TikTok video URLs you submit</li>
-            <li>Temporary authentication tokens for TikTok API access</li>
-        </ul>
-
-        <h2>Contact Us</h2>
-        <p>If you have any questions about this Privacy Policy, please contact us through the application interface.</p>
+        <h1>Privacy Policy</h1>
+        <p>Your privacy is important to us...</p>
     """)
 
 @static_pages.route('/terms')
