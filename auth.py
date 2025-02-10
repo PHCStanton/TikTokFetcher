@@ -23,7 +23,7 @@ class TikTokAuth:
         if self.is_development:
             self.console = Console()
             self.console.print("[yellow]Running in development mode[/yellow]")
-            self.auth_base_url = "https://open-api.tiktok.com/platform/oauth/connect/"  # Updated to use main API
+            self.auth_base_url = "https://www.tiktok.com/auth/authorize/"  # Use main API endpoint
             self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
             if os.getenv('REPL_SLUG') and os.getenv('REPL_OWNER'):
                 self.redirect_uri = f"https://{os.getenv('REPL_SLUG')}.{os.getenv('REPL_OWNER')}.repl.co/auth/tiktok/callback"
@@ -33,35 +33,17 @@ class TikTokAuth:
             self.auth_base_url = "https://www.tiktok.com/auth/authorize/"
             self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
 
-    async def _check_endpoint_availability(self, url: str) -> bool:
-        """Check if the endpoint is available"""
-        try:
-            parsed_url = urlparse(url)
-            await asyncio.get_event_loop().getaddrinfo(parsed_url.hostname, parsed_url.port or 443)
-            return True
-        except socket.gaierror:
-            self.console.print(f"[yellow]Warning: Unable to resolve {parsed_url.hostname}[/yellow]")
-            return False
-        except Exception as e:
-            self.console.print(f"[yellow]Warning: Error checking {url}: {str(e)}[/yellow]")
-            return False
-
     def get_auth_url(self, csrf_state: Optional[str] = None) -> str:
         """Generate TikTok OAuth URL with proper scopes and parameters"""
         try:
-            # Updated scopes based on 2025 TikTok API requirements
+            # Simplified scopes based on 2025 TikTok API requirements
             params = {
                 'client_key': self.client_key,
                 'redirect_uri': self.redirect_uri,
                 'response_type': 'code',
-                'scope': 'user.info.basic,video.list,video.upload,video.download',
-                'state': csrf_state if csrf_state is not None else 'default_state',
-                'auth_type': 'explicit'  # Force explicit auth flow
+                'scope': 'user.info.basic,video.list',  # Simplified scopes
+                'state': csrf_state if csrf_state is not None else 'default_state'
             }
-
-            if not self.is_development:
-                params['platform'] = 'web'
-                params['sdk_version'] = '2.0'  # Updated SDK version
 
             auth_url = f"{self.auth_base_url}?{urlencode(params)}"
             self.console.print(f"[blue]Generated auth URL: {auth_url}[/blue]")
@@ -76,11 +58,6 @@ class TikTokAuth:
             self.console.print("[red]Authorization code is required[/red]")
             return None
 
-        # Check endpoint availability first
-        if not await self._check_endpoint_availability(self.token_url):
-            self.console.print("[red]TikTok API endpoints are currently unreachable. Please try again later.[/red]")
-            return None
-
         remaining_retries = self.max_retries
         while remaining_retries > 0:
             try:
@@ -92,7 +69,7 @@ class TikTokAuth:
                         'grant_type': 'authorization_code'
                     }
 
-                    self.console.print(f"[blue]Attempting to get access token from {self.token_url}[/blue]")
+                    self.console.print(f"[blue]Attempting to get access token...[/blue]")
                     async with session.post(self.token_url, data=payload) as response:
                         response_text = await response.text()
                         if response.status == 200:
@@ -100,26 +77,22 @@ class TikTokAuth:
                             if 'data' in data and 'access_token' in data['data']:
                                 self.console.print("[green]Successfully obtained access token[/green]")
                                 return data['data']
-                            self.console.print(f"[red]Invalid response format from TikTok API: {response_text}[/red]")
-                        elif response.status == 429:
-                            self.console.print(f"[yellow]Rate limit exceeded. Waiting {self.retry_delay} seconds...[/yellow]")
-                            if remaining_retries > 1:
-                                await asyncio.sleep(self.retry_delay)
+                            self.console.print(f"[red]Invalid response format: {response_text}[/red]")
                         else:
                             self.console.print(f"[red]Auth failed ({response.status}): {response_text}[/red]")
 
             except aiohttp.ClientError as e:
-                self.console.print(f"[red]Network error during authentication: {str(e)}[/red]")
+                self.console.print(f"[red]Network error: {str(e)}[/red]")
             except asyncio.TimeoutError:
-                self.console.print("[red]Request timed out. TikTok API might be experiencing issues.[/red]")
+                self.console.print("[red]Request timed out[/red]")
             except Exception as e:
-                self.console.print(f"[red]Unexpected error during authentication: {str(e)}[/red]")
+                self.console.print(f"[red]Unexpected error: {str(e)}[/red]")
 
             remaining_retries -= 1
             if remaining_retries > 0:
-                await asyncio.sleep(self.retry_delay)
                 self.console.print(f"[yellow]Retrying... {remaining_retries} attempts remaining[/yellow]")
+                await asyncio.sleep(self.retry_delay)
             else:
-                self.console.print("[red]Maximum number of attempts reached. Please try again later.[/red]")
+                self.console.print("[red]Maximum retries reached[/red]")
 
         return None
