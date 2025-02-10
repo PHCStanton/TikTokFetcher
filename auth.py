@@ -8,7 +8,8 @@ class TikTokAuth:
     def __init__(self):
         self.client_key = os.getenv('TIKTOK_CLIENT_KEY')
         self.client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
-        self.redirect_uri = os.getenv('TIKTOK_REDIRECT_URI', 'https://api.tiktokrescue.online/auth/tiktok/callback')
+        base_domain = os.getenv('TIKTOK_BASE_DOMAIN', 'tiktokrescue.online')
+        self.redirect_uri = f"https://api.{base_domain}/auth/tiktok/callback"
         self.is_development = os.getenv('DEVELOPMENT_MODE', 'false').lower() == 'true'
 
         if not all([self.client_key, self.client_secret]):
