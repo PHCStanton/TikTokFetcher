@@ -15,7 +15,7 @@ repl_owner = os.getenv('REPL_OWNER', '')
 allowed_origins = [f"https://{repl_slug}.{repl_owner}.repl.dev"]
 
 CORS(app, resources={
-    r"/callback": {"origins": allowed_origins},
+    r"/auth/*": {"origins": allowed_origins},
     r"/privacy": {"origins": "*"},
     r"/terms": {"origins": "*"}
 })
@@ -74,26 +74,12 @@ def index():
                 <p>Debug Info:</p>
                 <p>Host URL: {{ host_url }}</p>
                 <p>Redirect URI: {{ redirect_uri }}</p>
-                <p>Development Mode: Enabled</p>
+                <p>Environment: Development</p>
+                <p>API Version: v2</p>
             </div>
         </body>
         </html>
     """, auth_url=auth_url, host_url=host_url, redirect_uri=auth.redirect_uri)
-
-@app.route('/callback')
-def callback():
-    code = request.args.get('code')
-    if code:
-        return f"""
-        <html>
-        <body>
-            <h1>Authorization Code Received</h1>
-            <p>Your authorization code is: <strong>{code}</strong></p>
-            <p>Please copy this code and paste it back in the command line interface.</p>
-        </body>
-        </html>
-        """
-    return "No authorization code received", 400
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 3000))

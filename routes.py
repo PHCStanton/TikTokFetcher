@@ -6,24 +6,61 @@ auth_routes = Blueprint('auth', __name__, url_prefix='/auth')
 
 @auth_routes.route('/tiktok/callback')
 def tiktok_callback():
+    """Handle TikTok OAuth2 callback with V2 API support"""
     code = request.args.get('code')
     state = request.args.get('state')
+    error = request.args.get('error')
+    error_description = request.args.get('error_description')
+
+    if error:
+        return render_template_string("""
+            <h1>Authentication Error</h1>
+            <p>Error: {{ error }}</p>
+            <p>Description: {{ error_description }}</p>
+        """, error=error, error_description=error_description)
 
     if not code:
         return jsonify({'error': 'No authorization code provided'}), 400
 
     # Return the code in a user-friendly format
     return render_template_string("""
-        <h1>Authorization Successful</h1>
-        <p>Your authorization code is: <strong>{{ code }}</strong></p>
-        <p>Please copy this code and paste it back in the application.</p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Authorization Successful</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    max-width: 600px;
+                    margin: 20px auto;
+                    padding: 20px;
+                    text-align: center;
+                }
+                .code-box {
+                    background: #f5f5f5;
+                    padding: 15px;
+                    border-radius: 5px;
+                    margin: 20px 0;
+                    word-break: break-all;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Authorization Successful</h1>
+            <p>Your authorization code is:</p>
+            <div class="code-box">
+                <strong>{{ code }}</strong>
+            </div>
+            <p>Please copy this code and paste it back in the application.</p>
+        </body>
+        </html>
     """, code=code)
 
 @static_pages.route('/privacy')
 def privacy_policy():
     return render_template_string("""
         <h1>Privacy Policy for FetchTok</h1>
-        <p>Last updated: February 06, 2025</p>
+        <p>Last updated: February 10, 2025</p>
 
         <p>This Privacy Policy describes how FetchTok ("we", "us", or "our") collects, uses, and discloses your information when you use our service.</p>
 
@@ -42,7 +79,7 @@ def privacy_policy():
 def terms_of_service():
     return render_template_string("""
         <h1>Terms of Service for FetchTok</h1>
-        <p>Last updated: February 06, 2025</p>
+        <p>Last updated: February 10, 2025</p>
 
         <p>By using our service, you agree to these terms:</p>
 

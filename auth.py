@@ -20,14 +20,14 @@ class TikTokAuth:
         if self.is_development:
             repl_slug = os.getenv('REPL_SLUG', '')
             repl_owner = os.getenv('REPL_OWNER', '')
-            self.redirect_uri = f"https://{repl_slug}.{repl_owner}.repl.dev/callback"
+            self.redirect_uri = f"https://{repl_slug}.{repl_owner}.repl.dev/auth/tiktok/callback"
             self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
             self.token_url = "https://open.tiktokapis.com/v2/oauth/token/"
         else:
             base_domain = os.getenv('TIKTOK_BASE_DOMAIN', 'tiktokrescue.online')
             self.redirect_uri = f"https://api.{base_domain}/auth/tiktok/callback"
-            self.auth_base_url = "https://www.tiktok.com/auth/authorize/"
-            self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
+            self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
+            self.token_url = "https://open.tiktokapis.com/v2/oauth/token/"
 
         if not all([self.client_key, self.client_secret]):
             raise ValueError("Missing required environment variables. Please check TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET")
