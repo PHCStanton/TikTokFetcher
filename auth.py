@@ -11,7 +11,7 @@ class TikTokAuth:
         self.client_key = os.getenv('TIKTOK_CLIENT_KEY')
         self.client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
         self.is_development = True  # Force development mode for Replit
-        self.is_sandbox = True  # Enable sandbox mode
+        self.is_sandbox = False  # Disable sandbox mode since endpoints are not accessible
         self.retry_count = 0
         self.max_retries = 3
         self.base_delay = 2  # Base delay in seconds
@@ -21,14 +21,8 @@ class TikTokAuth:
             repl_slug = os.getenv('REPL_SLUG', '')
             repl_owner = os.getenv('REPL_OWNER', '')
             self.redirect_uri = f"https://{repl_slug}.{repl_owner}.repl.dev/callback"
-
-            # Use sandbox endpoints when in sandbox mode
-            if self.is_sandbox:
-                self.auth_base_url = "https://sandbox.tiktokapis.com/v2/oauth/authorize"
-                self.token_url = "https://sandbox.tiktokapis.com/v2/oauth/token"
-            else:
-                self.auth_base_url = "https://www.tiktok.com/auth/authorize/"
-                self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
+            self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
+            self.token_url = "https://open.tiktokapis.com/v2/oauth/token/"
         else:
             base_domain = os.getenv('TIKTOK_BASE_DOMAIN', 'tiktokrescue.online')
             self.redirect_uri = f"https://api.{base_domain}/auth/tiktok/callback"
@@ -78,7 +72,8 @@ class TikTokAuth:
                         'client_key': self.client_key,
                         'client_secret': self.client_secret,
                         'code': code,
-                        'grant_type': 'authorization_code'
+                        'grant_type': 'authorization_code',
+                        'redirect_uri': self.redirect_uri  # Include redirect_uri in token request
                     }
 
                     async with session.post(self.token_url, data=payload) as response:
