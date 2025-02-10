@@ -10,11 +10,11 @@ class TikTokAuth:
     def __init__(self):
         self.client_key = os.getenv('TIKTOK_CLIENT_KEY')
         self.client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
-        self.is_development = True  # Forcing development mode
-        self.is_sandbox = False  # Disable sandbox mode since endpoints are not accessible
+        self.is_development = False  # Switch to production mode
+        self.is_sandbox = False
         self.retry_count = 0
         self.max_retries = 3
-        self.base_delay = 2  # Base delay in seconds
+        self.base_delay = 2
 
         # Set up the correct endpoints based on environment
         if self.is_development:

@@ -6,19 +6,18 @@ import os
 
 app = Flask(__name__)
 
-# Force development mode for Replit
-is_development = True
+# Force production mode
+is_development = False
 
-# Set up CORS for Replit domain
-repl_slug = os.getenv('REPL_SLUG', '')
-repl_owner = os.getenv('REPL_OWNER', '')
+# Set up CORS for production domain
+base_domain = os.getenv('TIKTOK_BASE_DOMAIN', 'tiktokrescue.online')
 allowed_origins = [
-    f"https://{repl_slug}.{repl_owner}.repl.dev",
-    "https://*.repl.co",
-    "https://*.repl.dev"
+    f"https://{base_domain}",
+    f"https://api.{base_domain}",
+    f"https://www.{base_domain}"
 ]
 
-# Enable CORS for all routes in development
+# Enable CORS for specific origins in production
 CORS(app, resources={r"/*": {"origins": allowed_origins}})
 
 # Register blueprints
@@ -89,7 +88,7 @@ def index():
                     <p>Debug Info:</p>
                     <p>Host URL: {{ host_url }}</p>
                     <p>Redirect URI: {{ redirect_uri }}</p>
-                    <p>Environment: Development</p>
+                    <p>Environment: Production</p>
                     <p>API Version: v2</p>
                 </div>
             </body>
