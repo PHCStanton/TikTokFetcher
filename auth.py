@@ -10,7 +10,7 @@ class TikTokAuth:
     def __init__(self):
         self.client_key = os.getenv('TIKTOK_CLIENT_KEY')
         self.client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
-        self.is_development = False  # Switch to production mode
+        self.is_development = True  # Switch to development mode
         self.is_sandbox = False
         self.retry_count = 0
         self.max_retries = 3

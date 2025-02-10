@@ -15,13 +15,10 @@ app = Flask(__name__)
 # Force production mode
 is_development = False
 
-# Set up CORS for production domain
-base_domain = os.getenv('TIKTOK_BASE_DOMAIN', 'tiktokrescue.online')
-allowed_origins = [
-    f"https://{base_domain}",
-    f"https://api.{base_domain}",
-    f"https://www.{base_domain}"
-]
+# Set up CORS for development
+repl_slug = os.getenv('REPL_SLUG', '')
+repl_owner = os.getenv('REPL_OWNER', '')
+allowed_origins = [f"https://{repl_slug}.{repl_owner}.repl.dev"]
 
 # Enable CORS for specific origins in production
 CORS(app, resources={r"/*": {"origins": allowed_origins}})
