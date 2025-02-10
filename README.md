@@ -5,7 +5,7 @@ TIKTOK_REDIRECT_URI=https://api.tiktokrescue.online/auth/tiktok/callback
 
 ### Development Mode
 
-1. Set `DEVELOPMENT_MODE=true` in your environment variables to use TikTok's test endpoints
+1. Set `DEVELOPMENT_MODE=false` in your environment variables to use TikTok's test endpoints
 2. In development mode:
    - The app uses `open-api-test.tiktok.com` endpoints
    - Default callback URL is `https://fetchtok.replit.dev/callback`
