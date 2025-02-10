@@ -49,16 +49,19 @@ class TikTokAuth:
     def get_auth_url(self, csrf_state: Optional[str] = None) -> str:
         """Generate TikTok OAuth URL with proper scopes and parameters"""
         try:
+            # Updated scopes based on 2025 TikTok API requirements
             params = {
                 'client_key': self.client_key,
                 'redirect_uri': self.redirect_uri,
                 'response_type': 'code',
-                'scope': 'user.info.basic,video.list',
-                'state': csrf_state if csrf_state is not None else 'default_state'
+                'scope': 'user.info.basic,video.list,video.upload,video.download',
+                'state': csrf_state if csrf_state is not None else 'default_state',
+                'auth_type': 'explicit'  # Force explicit auth flow
             }
 
             if not self.is_development:
                 params['platform'] = 'web'
+                params['sdk_version'] = '2.0'  # Updated SDK version
 
             auth_url = f"{self.auth_base_url}?{urlencode(params)}"
             self.console.print(f"[blue]Generated auth URL: {auth_url}[/blue]")
