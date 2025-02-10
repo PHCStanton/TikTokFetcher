@@ -63,13 +63,20 @@ class TikTokDownloader:
         """Get the actual video URL from TikTok"""
         session = await self.init_session()
         try:
+            await self._rate_limit()  # Ensure rate limiting before request
+            
             # Try mobile user agent first
-            async with session.get(url, allow_redirects=True) as response:
-                if response.status != 200:
+            async with session.get(url, allow_redirects=True, timeout=30) as response:
+                if response.status == 429:  # Rate limit hit
+                    self.console.print("[yellow]Rate limit hit, waiting...[/yellow]")
+                    await asyncio.sleep(5)
+                    return None
+                elif response.status != 200:
                     # If mobile fails, try desktop user agent
                     async with aiohttp.ClientSession(headers=self.desktop_headers) as desktop_session:
-                        async with desktop_session.get(url) as desktop_response:
+                        async with desktop_session.get(url, timeout=30) as desktop_response:
                             if desktop_response.status != 200:
+                                self.console.print(f"[red]Failed to fetch URL: HTTP {desktop_response.status}[/red]")
                                 return None
                             content = await desktop_response.text()
                 else:
