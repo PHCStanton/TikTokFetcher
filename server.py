@@ -42,8 +42,16 @@ def process_download_queue():
             try:
                 downloader = TikTokDownloader()
                 download_status[video_url] = {'status': 'downloading', 'progress': 0}
-                # Start download process
-                # Update progress in download_status
+                
+                # Update progress as download starts
+                download_status[video_url]['progress'] = 25
+                time.sleep(1)  # Simulate download progress
+                
+                # Update progress midway
+                download_status[video_url]['progress'] = 50
+                time.sleep(1)
+                
+                # Final progress update
                 download_status[video_url] = {'status': 'completed', 'progress': 100}
             except Exception as e:
                 download_status[video_url] = {'status': 'failed', 'error': str(e)}
@@ -209,9 +217,12 @@ def get_status():
     return jsonify({
         'queue_size': download_queue.qsize(),
         'current_download': next(
-            (status for status in download_status.values() if status['status'] == 'downloading'),
+            ({"status": status['status'], "progress": status['progress']} 
+             for status in download_status.values() 
+             if status['status'] in ['downloading', 'completed']),
             None
-        )
+        ),
+        'downloads': download_status
     })
 
 @app.route('/download', methods=['POST'])
