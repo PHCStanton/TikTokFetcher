@@ -15,6 +15,8 @@ class TikTokAuth:
         self.retry_count = 0
         self.max_retries = 3
         self.base_delay = 2
+        self._access_token = None
+        self._token_expiry = None
 
         # Set up the correct endpoints based on environment
         if self.is_development:
@@ -33,6 +35,17 @@ class TikTokAuth:
             raise ValueError("Missing required environment variables. Please check TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET")
 
         self.console = Console()
+
+    @property
+    def access_token(self) -> Optional[str]:
+        """Get the current access token if it exists and is valid"""
+        if self._access_token and self._token_expiry and time.time() < self._token_expiry:
+            return self._access_token
+        return None
+
+    def is_authenticated(self) -> bool:
+        """Check if the user is currently authenticated with a valid token"""
+        return bool(self.access_token)
 
     def get_auth_url(self, csrf_state: Optional[str] = None) -> str:
         """Generate TikTok OAuth URL with updated parameters"""
@@ -86,8 +99,12 @@ class TikTokAuth:
                         if response.status == 200:
                             data = await response.json()
                             if 'data' in data and 'access_token' in data['data']:
+                                token_data = data['data']
+                                self._access_token = token_data['access_token']
+                                # Set token expiry (usually expires_in is in seconds)
+                                self._token_expiry = time.time() + token_data.get('expires_in', 3600)
                                 self.retry_count = 0  # Reset retry count on success
-                                return data['data']
+                                return token_data
                             self.console.print("[red]Invalid response format from TikTok API[/red]")
                         elif response.status == 429:  # Rate limit
                             await self._exponential_backoff()

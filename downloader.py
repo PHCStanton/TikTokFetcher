@@ -6,7 +6,8 @@ import json
 import time
 from rich.progress import Progress, TextColumn, BarColumn, DownloadColumn, TransferSpeedColumn
 from rich.console import Console
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
+from datetime import datetime
 
 class TikTokDownloader:
     def __init__(self, access_token=None):
@@ -18,33 +19,65 @@ class TikTokDownloader:
         self.concurrent_downloads = 3
         self.semaphore = asyncio.Semaphore(self.concurrent_downloads)
         self.last_request_time = 0
-        self.mobile_headers = {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Dest': 'document',
-            'Pragma': 'no-cache',
-            'Cache-Control': 'no-cache'
-        }
-        self.desktop_headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-User': '?1',
-            'Sec-Fetch-Dest': 'document',
-            'Pragma': 'no-cache',
-            'Cache-Control': 'no-cache'
-        }
+        self.api_base_url = "https://open.tiktokapis.com/v2"
+
+    async def get_user_videos(self, max_count: int = 30, cursor: int = 0, sort_type: str = "latest") -> Dict[str, Any]:
+        """Fetch videos from the user's profile with sorting options"""
+        if not self.access_token:
+            raise ValueError("Access token is required to fetch user videos")
+
+        await self.init_session()
+
+        try:
+            headers = {
+                "Authorization": f"Bearer {self.access_token}",
+                "Content-Type": "application/json"
+            }
+
+            # Map sort type to API parameters
+            sort_params = {
+                "latest": {"sort_type": "create_time", "order": "desc"},
+                "oldest": {"sort_type": "create_time", "order": "asc"},
+                "most_liked": {"sort_type": "likes", "order": "desc"},
+                "most_viewed": {"sort_type": "views", "order": "desc"}
+            }
+
+            sort_config = sort_params.get(sort_type, sort_params["latest"])
+
+            params = {
+                "max_count": max_count,
+                "cursor": cursor,
+                **sort_config
+            }
+
+            url = f"{self.api_base_url}/video/list/"
+            async with self.session.get(url, headers=headers, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return {
+                        "videos": [{
+                            "id": video["id"],
+                            "title": video.get("title", ""),
+                            "cover_url": video.get("cover_url", ""),
+                            "share_url": video.get("share_url", ""),
+                            "create_time": datetime.fromtimestamp(video.get("create_time", 0)).strftime("%Y-%m-%d %H:%M:%S"),
+                            "stats": {
+                                "likes": video.get("statistics", {}).get("like_count", 0),
+                                "views": video.get("statistics", {}).get("view_count", 0),
+                                "shares": video.get("statistics", {}).get("share_count", 0)
+                            },
+                            "hashtags": [tag["name"] for tag in video.get("hashtags", [])]
+                        } for video in data.get("videos", [])],
+                        "cursor": data.get("cursor", 0),
+                        "has_more": data.get("has_more", False)
+                    }
+                else:
+                    error_data = await response.json()
+                    raise Exception(f"Failed to fetch videos: {error_data.get('error', 'Unknown error')}")
+
+        except Exception as e:
+            self.console.print(f"[red]Error fetching user videos: {str(e)}[/red]")
+            return {"videos": [], "cursor": cursor, "has_more": False}
 
     async def init_session(self):
         """Initialize aiohttp session if not already initialized"""
@@ -119,7 +152,8 @@ class TikTokDownloader:
             self.console.print(f"[red]Error extracting video URL: {str(e)}[/red]")
             return None
 
-    async def download_videos(self, urls: List[str]):
+    async def download_videos(self, video_ids: List[str]):
+        """Download multiple videos by their IDs"""
         await self.init_session()
         os.makedirs("downloads", exist_ok=True)
 
@@ -130,23 +164,19 @@ class TikTokDownloader:
             TransferSpeedColumn(),
         ) as progress:
             tasks = []
-            for url in urls:
-                task = asyncio.create_task(self._download_single_video(url, progress))
+            for video_id in video_ids:
+                task = asyncio.create_task(self._download_single_video(video_id, progress))
                 tasks.append(task)
 
             results = await asyncio.gather(*tasks, return_exceptions=True)
-            for url, result in zip(urls, results):
+            for video_id, result in zip(video_ids, results):
                 if isinstance(result, Exception):
-                    self.console.print(f"[red]Failed to download {url}: {str(result)}[/red]")
+                    self.console.print(f"[red]Failed to download video {video_id}: {str(result)}[/red]")
 
-    async def _download_single_video(self, url: str, progress):
+    async def _download_single_video(self, video_id: str, progress):
         session = await self.init_session()
         async with self.semaphore:
-            video_id = await self._extract_video_id(url)
-            if not video_id:
-                self.console.print(f"[red]Invalid URL: {url}[/red]")
-                return
-
+            
             filename = f"downloads/tiktok_{video_id}.mp4"
             download_task = progress.add_task(
                 f"Downloading {video_id}",
@@ -156,7 +186,11 @@ class TikTokDownloader:
             for retry in range(self.max_retries):
                 try:
                     await self._rate_limit()
-                    video_url = await self._get_video_url(url)
+                    #Now using video_id to fetch the share_url
+                    user_videos = await self.get_user_videos(max_count=1, sort_type="latest") # Adjust as needed
+                    video_url = None
+                    if user_videos and user_videos["videos"]:
+                        video_url = user_videos["videos"][0]["share_url"]
 
                     if not video_url:
                         progress.update(download_task, description=f"[red]Failed to get video URL for {video_id}[/red]")
@@ -218,3 +252,31 @@ class TikTokDownloader:
             if match:
                 return match.group(1)
         return None
+
+    mobile_headers = {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Dest': 'document',
+        'Pragma': 'no-cache',
+        'Cache-Control': 'no-cache'
+    }
+    desktop_headers = {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-User': '?1',
+        'Sec-Fetch-Dest': 'document',
+        'Pragma': 'no-cache',
+        'Cache-Control': 'no-cache'
+    }

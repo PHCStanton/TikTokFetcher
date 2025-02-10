@@ -1,5 +1,8 @@
-from flask import Blueprint, request, redirect, render_template_string, jsonify
+from flask import Blueprint, request, redirect, render_template_string, jsonify, session, url_for
 import os
+import time
+import asyncio
+from auth import TikTokAuth
 
 static_pages = Blueprint('static_pages', __name__)
 auth_routes = Blueprint('auth', __name__, url_prefix='/auth')
@@ -17,44 +20,37 @@ def tiktok_callback():
             <h1>Authentication Error</h1>
             <p>Error: {{ error }}</p>
             <p>Description: {{ error_description }}</p>
+            <p><a href="/">Try Again</a></p>
         """, error=error, error_description=error_description)
 
     if not code:
         return jsonify({'error': 'No authorization code provided'}), 400
 
-    # Return the code in a user-friendly format
-    return render_template_string("""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Authorization Successful</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    max-width: 600px;
-                    margin: 20px auto;
-                    padding: 20px;
-                    text-align: center;
-                }
-                .code-box {
-                    background: #f5f5f5;
-                    padding: 15px;
-                    border-radius: 5px;
-                    margin: 20px 0;
-                    word-break: break-all;
-                }
-            </style>
-        </head>
-        <body>
-            <h1>Authorization Successful</h1>
-            <p>Your authorization code is:</p>
-            <div class="code-box">
-                <strong>{{ code }}</strong>
-            </div>
-            <p>Please copy this code and paste it back in the application.</p>
-        </body>
-        </html>
-    """, code=code)
+    try:
+        auth = TikTokAuth()
+        # Get access token
+        token_data = asyncio.run(auth.get_access_token(code))
+
+        if not token_data or 'access_token' not in token_data:
+            return render_template_string("""
+                <h1>Authentication Failed</h1>
+                <p>Could not get access token. Please try again.</p>
+                <p><a href="/">Return to Home</a></p>
+            """)
+
+        # Store in session
+        session['access_token'] = token_data['access_token']
+        session['token_expiry'] = time.time() + token_data.get('expires_in', 3600)
+
+        # Redirect to main page
+        return redirect(url_for('index'))
+
+    except Exception as e:
+        return render_template_string("""
+            <h1>Authentication Error</h1>
+            <p>An error occurred during authentication: {{ error }}</p>
+            <p><a href="/">Try Again</a></p>
+        """, error=str(e))
 
 @static_pages.route('/privacy')
 def privacy_policy():
