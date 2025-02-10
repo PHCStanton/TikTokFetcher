@@ -26,8 +26,8 @@ class TikTokAuth:
             self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
             self.token_url = "https://open.tiktokapis.com/v2/oauth/token/"
         else:
-            base_domain = os.getenv('TIKTOK_BASE_DOMAIN', 'tiktokrescue.online')
-            self.redirect_uri = f"https://api.{base_domain}/auth/tiktok/callback"
+            base_domain = os.environ['TIKTOK_BASE_DOMAIN']
+            self.redirect_uri = f"https://{base_domain}/auth/tiktok/callback"
             self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
             self.token_url = "https://open.tiktokapis.com/v2/oauth/token/"
 
