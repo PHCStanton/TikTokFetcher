@@ -10,19 +10,18 @@ class TikTokAuth:
     def __init__(self):
         self.client_key = os.getenv('TIKTOK_CLIENT_KEY')
         self.client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
-        self.is_development = True  # Switch to development mode
-        self.is_sandbox = False
+        self.is_development = True  # Force development mode
+        self.is_sandbox = True  # Enable sandbox mode
         self.retry_count = 0
         self.max_retries = 3
         self.base_delay = 2
         self._access_token = None
         self._token_expiry = None
 
-        # Set up the correct endpoints based on environment
-        if self.is_development:
-            repl_slug = os.getenv('REPL_SLUG', '')
-            repl_owner = os.getenv('REPL_OWNER', '')
-            self.redirect_uri = f"https://{repl_slug}.{repl_owner}.repl.dev/auth/tiktok/callback"
+        # Set up development endpoints
+        repl_id = os.getenv('REPL_ID', '')
+        repl_slug = os.getenv('REPL_SLUG', '')
+        self.redirect_uri = f"https://{repl_id}.id.repl.co/auth/tiktok/callback"
             self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
             self.token_url = "https://open.tiktokapis.com/v2/oauth/token/"
         else:
