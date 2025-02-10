@@ -15,8 +15,8 @@ class TikTokAuth:
             repl_slug = os.getenv('REPL_SLUG', '')
             repl_owner = os.getenv('REPL_OWNER', '')
             self.redirect_uri = f"https://{repl_slug}.{repl_owner}.repl.dev/callback"
-            self.auth_base_url = "https://open-api-test.tiktok.com/platform/oauth/connect/"
-            self.token_url = "https://open-api-test.tiktok.com/oauth/access_token/"
+            self.auth_base_url = "https://www.tiktok.com/auth/authorize/"
+            self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
         else:
             base_domain = os.getenv('TIKTOK_BASE_DOMAIN', 'tiktokrescue.online')
             self.redirect_uri = f"https://api.{base_domain}/auth/tiktok/callback"
