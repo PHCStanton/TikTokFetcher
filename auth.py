@@ -2,9 +2,10 @@ import os
 from rich.console import Console
 import aiohttp
 from typing import Optional, Dict
-from urllib.parse import urlencode, urlparse
+from urllib.parse import urlencode
 import asyncio
-import socket
+import json
+import time
 
 class TikTokAuth:
     def __init__(self):
@@ -12,9 +13,11 @@ class TikTokAuth:
         self.client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
         self.redirect_uri = os.getenv('TIKTOK_REDIRECT_URI', 'https://api.tiktokrescue.online/auth/tiktok/callback')
         self.is_development = os.getenv('DEVELOPMENT_MODE', 'true').lower() == 'true'
-        self.retry_delay = 5
-        self.max_retries = 3
+        self.base_retry_delay = 3  # Start with 3 seconds
+        self.max_retries = 5
         self.timeout = aiohttp.ClientTimeout(total=30)
+        self.last_request_time = 0
+        self.min_request_interval = 1.0  # Minimum 1 second between requests
 
         if not all([self.client_key, self.client_secret]):
             raise ValueError("Missing required environment variables. Please check TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET")
@@ -32,6 +35,14 @@ class TikTokAuth:
             self.console.print("[green]Running in production mode[/green]")
             self.auth_base_url = "https://www.tiktok.com/auth/authorize/"
             self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
+
+    async def _rate_limit(self):
+        """Ensure minimum time between requests"""
+        current_time = time.time()
+        elapsed = current_time - self.last_request_time
+        if elapsed < self.min_request_interval:
+            await asyncio.sleep(self.min_request_interval - elapsed)
+        self.last_request_time = time.time()
 
     def get_auth_url(self, csrf_state: Optional[str] = None) -> str:
         """Generate TikTok OAuth URL with proper scopes and parameters"""
@@ -61,6 +72,9 @@ class TikTokAuth:
         remaining_retries = self.max_retries
         while remaining_retries > 0:
             try:
+                # Respect rate limiting
+                await self._rate_limit()
+
                 async with aiohttp.ClientSession(timeout=self.timeout) as session:
                     payload = {
                         'client_key': self.client_key,
@@ -69,17 +83,26 @@ class TikTokAuth:
                         'grant_type': 'authorization_code'
                     }
 
-                    self.console.print(f"[blue]Attempting to get access token...[/blue]")
+                    self.console.print(f"[blue]Attempting to get access token (attempt {self.max_retries - remaining_retries + 1}/{self.max_retries})[/blue]")
+
                     async with session.post(self.token_url, data=payload) as response:
                         response_text = await response.text()
+
                         if response.status == 200:
-                            data = await response.json()
-                            if 'data' in data and 'access_token' in data['data']:
-                                self.console.print("[green]Successfully obtained access token[/green]")
-                                return data['data']
-                            self.console.print(f"[red]Invalid response format: {response_text}[/red]")
+                            try:
+                                data = json.loads(response_text)
+                                if data.get('message') == 'success' and 'data' in data:
+                                    self.console.print("[green]Successfully obtained access token[/green]")
+                                    return data['data']
+                                else:
+                                    self.console.print(f"[yellow]Invalid response format: {response_text}[/yellow]")
+                            except json.JSONDecodeError:
+                                self.console.print("[red]Invalid JSON response from TikTok API[/red]")
+
+                        elif response.status == 429:
+                            self.console.print("[yellow]Rate limit reached. Waiting before retry...[/yellow]")
                         else:
-                            self.console.print(f"[red]Auth failed ({response.status}): {response_text}[/red]")
+                            self.console.print(f"[red]Auth failed (Status {response.status})[/red]")
 
             except aiohttp.ClientError as e:
                 self.console.print(f"[red]Network error: {str(e)}[/red]")
@@ -90,9 +113,11 @@ class TikTokAuth:
 
             remaining_retries -= 1
             if remaining_retries > 0:
-                self.console.print(f"[yellow]Retrying... {remaining_retries} attempts remaining[/yellow]")
-                await asyncio.sleep(self.retry_delay)
+                # Exponential backoff
+                delay = self.base_retry_delay * (2 ** (self.max_retries - remaining_retries))
+                self.console.print(f"[yellow]Waiting {delay} seconds before retry... ({remaining_retries} attempts remaining)[/yellow]")
+                await asyncio.sleep(delay)
             else:
-                self.console.print("[red]Maximum retries reached[/red]")
+                self.console.print("[red]All retry attempts exhausted. Please try again later.[/red]")
 
         return None
