@@ -3,6 +3,7 @@ from rich.console import Console
 import aiohttp
 from typing import Optional, Dict
 from urllib.parse import urlencode, urlparse
+import asyncio
 
 class TikTokAuth:
     def __init__(self):
@@ -10,6 +11,8 @@ class TikTokAuth:
         self.client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
         self.redirect_uri = os.getenv('TIKTOK_REDIRECT_URI', 'https://api.tiktokrescue.online/auth/tiktok/callback')
         self.is_development = os.getenv('DEVELOPMENT_MODE', 'false').lower() == 'true'
+        self.retry_delay = 5  # Increased delay between retries
+        self.max_retries = 2  # Reduced number of retries to avoid hitting rate limits
 
         if not all([self.client_key, self.client_secret]):
             raise ValueError("Missing required environment variables. Please check TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET")
@@ -42,34 +45,53 @@ class TikTokAuth:
             raise
 
     async def get_access_token(self, code: str) -> Optional[Dict]:
-        """Exchange authorization code for access token"""
+        """Exchange authorization code for access token with improved error handling"""
         if not code:
             self.console.print("[red]Authorization code is required[/red]")
             return None
 
-        try:
-            async with aiohttp.ClientSession() as session:
-                payload = {
-                    'client_key': self.client_key,
-                    'client_secret': self.client_secret,
-                    'code': code,
-                    'grant_type': 'authorization_code'
-                }
+        remaining_retries = self.max_retries
+        while remaining_retries > 0:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    payload = {
+                        'client_key': self.client_key,
+                        'client_secret': self.client_secret,
+                        'code': code,
+                        'grant_type': 'authorization_code'
+                    }
 
-                async with session.post(self.token_url, data=payload) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        if 'data' in data and 'access_token' in data['data']:
-                            return data['data']
-                        self.console.print("[red]Invalid response format from TikTok API[/red]")
-                    else:
-                        error_text = await response.text()
-                        self.console.print(f"[red]Auth failed: {response.status} - {error_text}[/red]")
-                    return None
+                    async with session.post(self.token_url, data=payload) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            if 'data' in data and 'access_token' in data['data']:
+                                return data['data']
+                            self.console.print("[red]Invalid response format from TikTok API[/red]")
+                        elif response.status == 429:  # Rate limit exceeded
+                            error_text = await response.text()
+                            self.console.print(f"[yellow]Rate limit exceeded. Please wait {self.retry_delay} seconds before trying again.[/yellow]")
+                            if remaining_retries > 1:  # Only wait if we're going to retry
+                                await asyncio.sleep(self.retry_delay)
+                        else:
+                            error_text = await response.text()
+                            self.console.print(f"[red]Auth failed: {response.status} - {error_text}[/red]")
 
-        except aiohttp.ClientError as e:
-            self.console.print(f"[red]Network error during authentication: {str(e)}[/red]")
-            return None
-        except Exception as e:
-            self.console.print(f"[red]Unexpected error during authentication: {str(e)}[/red]")
-            return None
+                        remaining_retries -= 1
+                        if remaining_retries > 0:
+                            self.console.print(f"[yellow]Retrying... {remaining_retries} attempts remaining[/yellow]")
+                        else:
+                            self.console.print("[red]Maximum number of attempts reached. Please try again later.[/red]")
+
+                        return None
+
+            except aiohttp.ClientError as e:
+                self.console.print(f"[red]Network error during authentication: {str(e)}[/red]")
+                remaining_retries -= 1
+            except Exception as e:
+                self.console.print(f"[red]Unexpected error during authentication: {str(e)}[/red]")
+                remaining_retries -= 1
+
+            if remaining_retries > 0:
+                await asyncio.sleep(self.retry_delay)
+
+        return None
