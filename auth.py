@@ -26,9 +26,9 @@ class TikTokAuth:
         self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
         self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
 
-        # Only check for credentials if not in bypass mode
-        if not self.bypass_auth and not all([self.client_key, self.client_secret]):
-            raise ValueError("Missing required environment variables. Please check TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET")
+        # Temporarily bypass credential check for domain verification
+        self.client_key = self.client_key or 'domain_verification_mode'
+        self.client_secret = self.client_secret or 'domain_verification_mode'
 
         self.console = Console()
 
