@@ -1,3 +1,4 @@
+
 import os
 from rich.console import Console
 import aiohttp
@@ -24,11 +25,6 @@ class TikTokAuth:
         self.redirect_uri = f"https://{repl_slug}.{repl_id}.repl.co/auth/tiktok/callback"
         self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
         self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
-        else:
-            base_domain = os.environ['TIKTOK_BASE_DOMAIN']
-            self.redirect_uri = f"https://{base_domain}/auth/tiktok/callback"
-            self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
-            self.token_url = "https://open.tiktokapis.com/v2/oauth/token/"
 
         if not all([self.client_key, self.client_secret]):
             raise ValueError("Missing required environment variables. Please check TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET")
