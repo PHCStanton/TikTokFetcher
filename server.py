@@ -67,13 +67,87 @@ threading.Thread(target=process_download_queue, daemon=True).start()
 @app.route('/')
 def index():
     try:
-        # Check if user is authenticated
-        is_authenticated = bool(session.get('access_token'))
+        # Check if we're in bypass mode
+        bypass_mode = os.getenv('BYPASS_AUTH', 'false').lower() == 'true'
 
-        # Generate auth URL if not authenticated
+        if bypass_mode:
+            # Show domain verification instructions
+            return render_template_string("""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>TikTok Domain Verification</title>
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
+                    <style>
+                        body {
+                            font-family: system-ui, -apple-system, sans-serif;
+                            max-width: 800px;
+                            margin: 20px auto;
+                            padding: 20px;
+                            line-height: 1.6;
+                        }
+                        .container {
+                            background: #f5f5f5;
+                            padding: 20px;
+                            border-radius: 8px;
+                            margin-top: 20px;
+                        }
+                        code {
+                            background: #e0e0e0;
+                            padding: 2px 6px;
+                            border-radius: 4px;
+                        }
+                        .step {
+                            margin-bottom: 20px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>TikTok Domain Verification Setup</h1>
+
+                    <div class="container">
+                        <h2>Current Redirect URI</h2>
+                        <code>{{ redirect_uri }}</code>
+                        <p>Use this URL in your TikTok Developer Portal setup.</p>
+                    </div>
+
+                    <h2>Steps for Domain Verification:</h2>
+
+                    <div class="step">
+                        <h3>1. TikTok Developer Portal Setup</h3>
+                        <ul>
+                            <li>Go to the <a href="https://developers.tiktok.com/" target="_blank">TikTok Developer Portal</a></li>
+                            <li>Add the above Redirect URI to your application settings</li>
+                        </ul>
+                    </div>
+
+                    <div class="step">
+                        <h3>2. Domain Configuration</h3>
+                        <ul>
+                            <li>Copy the TXT record provided by TikTok</li>
+                            <li>Go to your domain provider's DNS settings</li>
+                            <li>Add a new TXT record with the value from TikTok</li>
+                            <li>Wait for DNS propagation (can take up to 48 hours)</li>
+                        </ul>
+                    </div>
+
+                    <div class="step">
+                        <h3>3. Complete Verification</h3>
+                        <ul>
+                            <li>Return to TikTok Developer Portal</li>
+                            <li>Click "Verify Domain"</li>
+                            <li>Once verified, set BYPASS_AUTH=false in your environment variables</li>
+                            <li>Add your TikTok API credentials to the environment variables</li>
+                        </ul>
+                    </div>
+                </body>
+                </html>
+            """, redirect_uri=auth.redirect_uri)
+
+        # Regular auth flow 
+        is_authenticated = bool(session.get('access_token'))
         auth_url = None if is_authenticated else auth.get_auth_url()
 
-        # Return appropriate template based on auth status
         return render_template_string("""
             <!DOCTYPE html>
             <html>

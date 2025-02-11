@@ -1,4 +1,3 @@
-
 import os
 from rich.console import Console
 import aiohttp
@@ -11,6 +10,7 @@ class TikTokAuth:
     def __init__(self):
         self.client_key = os.getenv('TIKTOK_CLIENT_KEY')
         self.client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
+        self.bypass_auth = os.getenv('BYPASS_AUTH', 'false').lower() == 'true'
         self.is_development = True  # Force development mode
         self.is_sandbox = True  # Enable sandbox mode
         self.retry_count = 0
@@ -26,7 +26,8 @@ class TikTokAuth:
         self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
         self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
 
-        if not all([self.client_key, self.client_secret]):
+        # Only check for credentials if not in bypass mode
+        if not self.bypass_auth and not all([self.client_key, self.client_secret]):
             raise ValueError("Missing required environment variables. Please check TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET")
 
         self.console = Console()
@@ -34,16 +35,22 @@ class TikTokAuth:
     @property
     def access_token(self) -> Optional[str]:
         """Get the current access token if it exists and is valid"""
+        if self.bypass_auth:
+            return "bypass_mode_active"
         if self._access_token and self._token_expiry and time.time() < self._token_expiry:
             return self._access_token
         return None
 
     def is_authenticated(self) -> bool:
         """Check if the user is currently authenticated with a valid token"""
-        return bool(self.access_token)
+        return self.bypass_auth or bool(self.access_token)
 
     def get_auth_url(self, csrf_state: Optional[str] = None) -> str:
         """Generate TikTok OAuth URL with updated parameters"""
+        if self.bypass_auth:
+            self.console.print("[yellow]Auth bypass mode active - authentication URLs disabled[/yellow]")
+            return "#"
+
         try:
             params = {
                 'client_key': self.client_key,

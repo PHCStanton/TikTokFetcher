@@ -1,8 +1,3 @@
-DEVELOPMENT_MODE=false
-TIKTOK_BASE_DOMAIN=tiktokrescue.online
-TIKTOK_REDIRECT_URI=https://api.tiktokrescue.online/auth/tiktok/callback
-```
-
 ### Development Mode
 
 1. Set `DEVELOPMENT_MODE=false` in your environment variables to use TikTok's test endpoints
@@ -32,6 +27,30 @@ Required environment variables:
 - `TIKTOK_REDIRECT_URI`: Your callback URL
 - `DEVELOPMENT_MODE`: Set to 'true' for development, 'false' for production
 - `TIKTOK_BASE_DOMAIN`: Your verified domain (e.g., tiktokrescue.online)
+- `BYPASS_AUTH`: Set to 'true' during initial deployment for domain verification
+
+## Domain Verification Process
+
+1. **Initial Deployment Setup**:
+   - Set `BYPASS_AUTH=true` in your environment variables
+   - Deploy your application to Replit
+   - Note down your application's URL (e.g., `https://your-app.replit.dev`)
+
+2. **TikTok Developer Portal Configuration**:
+   - Go to [TikTok Developer Portal](https://developers.tiktok.com)
+   - Add your application's callback URL
+   - Get the TXT record for domain verification
+
+3. **DNS Configuration**:
+   - Access your domain provider's DNS settings
+   - Add the TXT record provided by TikTok
+   - Wait for DNS propagation (24-48 hours)
+
+4. **Complete Verification**:
+   - Verify domain in TikTok Developer Portal
+   - Set `BYPASS_AUTH=false`
+   - Add `TIKTOK_CLIENT_KEY` and `TIKTOK_CLIENT_SECRET` to Replit Secrets
+   - Restart your application
 
 ## Usage
 
