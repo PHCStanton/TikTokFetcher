@@ -18,13 +18,12 @@ class TikTokAuth:
         self._access_token = None
         self._token_expiry = None
 
-        # Set up development endpoints
+        # Set up sandbox endpoints
         repl_id = os.getenv('REPL_ID', '')
         repl_slug = os.getenv('REPL_SLUG', '')
-        if self.is_development:
-            self.redirect_uri = f"https://{repl_id}.id.repl.co/auth/tiktok/callback"
-            self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
-            self.token_url = "https://open.tiktokapis.com/v2/oauth/token/"
+        self.redirect_uri = f"https://{repl_slug}.{repl_id}.repl.co/auth/tiktok/callback"
+        self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
+        self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
         else:
             base_domain = os.environ['TIKTOK_BASE_DOMAIN']
             self.redirect_uri = f"https://{base_domain}/auth/tiktok/callback"
