@@ -423,32 +423,50 @@ def auth_callback():
 
 @app.route('/download', methods=['POST'])
 def queue_download():
-    data = request.get_json()
-    video_ids = data.get('video_ids', [])
-    user_id = request.remote_addr
+    try:
+        data = request.get_json()
+        video_ids = data.get('video_ids', [])
+        user_id = request.remote_addr
 
-    if len(video_ids) > 5:
-        return jsonify({'error': 'Maximum 5 videos can be selected'}), 400
+        if not video_ids:
+            return jsonify({'error': 'No videos selected'}), 400
 
-    # Check rate limit
-    current_time = datetime.now()
-    if user_id in user_downloads:
-        download_times = user_downloads[user_id]
-        download_times = [t for t in download_times if current_time - t < timedelta(hours=1)]
-        if len(download_times) >= 5:
-            return jsonify({'error': 'Rate limit exceeded. Please try again later.'}), 429
-        user_downloads[user_id] = download_times
-    else:
-        user_downloads[user_id] = []
+        if len(video_ids) > 5:
+            return jsonify({'error': 'Maximum 5 videos can be selected'}), 400
 
-    # Add to queue if not full
-    if download_queue.qsize() + len(video_ids) <= 5:
-        for video_id in video_ids:
-            download_queue.put((user_id, video_id))
-            user_downloads[user_id].append(current_time)
-        return jsonify({'message': 'Videos added to queue'})
-    else:
-        return jsonify({'error': 'Queue is full. Please try again later.'}), 429
+        # Check rate limit
+        current_time = datetime.now()
+        if user_id in user_downloads:
+            download_times = user_downloads[user_id]
+            # Keep only downloads from last hour
+            download_times = [t for t in download_times if current_time - t < timedelta(hours=1)]
+            if len(download_times) >= 5:
+                remaining_time = (download_times[0] + timedelta(hours=1) - current_time)
+                return jsonify({
+                    'error': 'Rate limit exceeded',
+                    'message': f'Please try again in {int(remaining_time.total_seconds() / 60)} minutes'
+                }), 429
+            user_downloads[user_id] = download_times
+        else:
+            user_downloads[user_id] = []
+
+        # Add to queue if not full
+        if download_queue.qsize() + len(video_ids) <= 5:
+            for video_id in video_ids:
+                download_queue.put((user_id, video_id))
+                user_downloads[user_id].append(current_time)
+            return jsonify({
+                'message': 'Videos added to queue',
+                'queue_position': download_queue.qsize()
+            })
+        else:
+            return jsonify({
+                'error': 'Queue is full',
+                'message': 'Please try again in a few minutes'
+            }), 429
+    except Exception as e:
+        app.logger.error(f"Download queue error: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/status')
 def get_status():

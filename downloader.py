@@ -4,6 +4,7 @@ import os
 import re
 import json
 import time
+import random # Added for jitter in rate limiting
 from rich.progress import Progress, TextColumn, BarColumn, DownloadColumn, TransferSpeedColumn
 from rich.console import Console
 from typing import List, Optional, Dict, Any
@@ -15,8 +16,8 @@ class TikTokDownloader:
         self.console = Console()
         self.max_retries = 3
         self.access_token = access_token
-        self.rate_limit_delay = 1.0
-        self.concurrent_downloads = 3
+        self.rate_limit_delay = 2.5  # Increased from 1.0 to 2.5 seconds
+        self.concurrent_downloads = 2  # Reduced from 3 to 2 for better stability
         self.semaphore = asyncio.Semaphore(self.concurrent_downloads)
         self.last_request_time = 0
         self.api_base_url = "https://open.tiktokapis.com/v2"
@@ -97,7 +98,7 @@ class TikTokDownloader:
         session = await self.init_session()
         try:
             await self._rate_limit()  # Ensure rate limiting before request
-            
+
             # Try mobile user agent first
             async with session.get(url, allow_redirects=True, timeout=30) as response:
                 if response.status == 429:  # Rate limit hit
@@ -176,7 +177,7 @@ class TikTokDownloader:
     async def _download_single_video(self, video_id: str, progress):
         session = await self.init_session()
         async with self.semaphore:
-            
+
             filename = f"downloads/tiktok_{video_id}.mp4"
             download_task = progress.add_task(
                 f"Downloading {video_id}",
@@ -224,10 +225,12 @@ class TikTokDownloader:
                         progress.update(download_task, description=f"[red]Failed {video_id}: {str(e)}[/red]")
 
     async def _rate_limit(self):
+        """Implement improved rate limiting with jitter"""
         current_time = time.time()
         time_since_last_request = current_time - self.last_request_time
         if time_since_last_request < self.rate_limit_delay:
-            await asyncio.sleep(self.rate_limit_delay - time_since_last_request)
+            jitter = random.uniform(0, 0.5)  # Add random jitter between 0-0.5 seconds
+            await asyncio.sleep(self.rate_limit_delay - time_since_last_request + jitter)
         self.last_request_time = time.time()
 
     async def _extract_video_id(self, url: str) -> Optional[str]:
