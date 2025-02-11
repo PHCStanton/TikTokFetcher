@@ -71,7 +71,12 @@ def index():
         bypass_mode = os.getenv('BYPASS_AUTH', 'false').lower() == 'true'
 
         if bypass_mode:
-            # Show domain verification instructions
+            # Get the deployment URL for verification
+            repl_slug = os.getenv('REPL_SLUG', '')
+            repl_owner = os.getenv('REPL_OWNER', '')
+            deployment_url = f"https://{repl_slug}.{repl_owner}.repl.dev"
+            verification_callback = f"{deployment_url}/auth/tiktok/callback"
+            
             return render_template_string("""
                 <!DOCTYPE html>
                 <html>
