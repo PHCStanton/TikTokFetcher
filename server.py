@@ -74,7 +74,7 @@ def index():
             # Get the deployment URL for verification
             repl_slug = os.getenv('REPL_SLUG', '')
             repl_owner = os.getenv('REPL_OWNER', '')
-            deployment_url = f"https://{repl_slug}.{repl_owner}.repl.dev"
+            deployment_url = f"https://{repl_slug}.{repl_owner}.repl.co"
             verification_callback = f"{deployment_url}/auth/tiktok/callback"
             
             return render_template_string("""
