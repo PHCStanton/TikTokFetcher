@@ -3,7 +3,9 @@ import os
 import time
 import asyncio
 from auth import TikTokAuth
+from rich.console import Console
 
+console = Console()
 static_pages = Blueprint('static_pages', __name__)
 auth_routes = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -15,7 +17,11 @@ def tiktok_callback():
     error = request.args.get('error')
     error_description = request.args.get('error_description')
 
+    console.print(f"[blue]Received callback with code: {code[:10] if code else 'None'}[/blue]")
+    console.print(f"[blue]State: {state}, Error: {error}[/blue]")
+
     if error:
+        console.print(f"[red]OAuth error: {error} - {error_description}[/red]")
         return render_template_string("""
             <h1>Authentication Error</h1>
             <p>Error: {{ error }}</p>
@@ -24,17 +30,33 @@ def tiktok_callback():
         """, error=error, error_description=error_description)
 
     if not code:
-        return jsonify({'error': 'No authorization code provided'}), 400
+        console.print("[red]No authorization code provided in callback[/red]")
+        return render_template_string("""
+            <h1>Authentication Error</h1>
+            <p>No authorization code was provided. Please try again.</p>
+            <p><a href="/">Return to Home</a></p>
+        """)
 
     try:
         auth = TikTokAuth()
+        console.print("[blue]Attempting to get access token...[/blue]")
+
         # Get access token
         token_data = asyncio.run(auth.get_access_token(code))
 
-        if not token_data or 'access_token' not in token_data:
+        if not token_data:
+            console.print("[red]Failed to get access token - token_data is None[/red]")
             return render_template_string("""
                 <h1>Authentication Failed</h1>
                 <p>Could not get access token. Please try again.</p>
+                <p><a href="/">Return to Home</a></p>
+            """)
+
+        if 'access_token' not in token_data:
+            console.print("[red]Failed to get access token - no access_token in response[/red]")
+            return render_template_string("""
+                <h1>Authentication Failed</h1>
+                <p>Invalid token response. Please try again.</p>
                 <p><a href="/">Return to Home</a></p>
             """)
 
@@ -42,10 +64,13 @@ def tiktok_callback():
         session['access_token'] = token_data['access_token']
         session['token_expiry'] = time.time() + token_data.get('expires_in', 3600)
 
+        console.print("[green]Successfully stored access token in session[/green]")
+
         # Redirect to main page
         return redirect(url_for('index'))
 
     except Exception as e:
+        console.print(f"[red]Authentication error: {str(e)}[/red]")
         return render_template_string("""
             <h1>Authentication Error</h1>
             <p>An error occurred during authentication: {{ error }}</p>

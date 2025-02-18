@@ -18,17 +18,19 @@ class TikTokAuth:
         self.base_delay = 2
         self._access_token = None
         self._token_expiry = None
+        self.console = Console()
 
-        # Set up production endpoints with verified domain
+        # Update callback URL to match routes.py
         self.redirect_uri = "https://app.tiktokrescue.online/auth/tiktok/callback"
         self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
         self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
 
-        # Temporarily bypass credential check for domain verification
-        self.client_key = self.client_key or 'domain_verification_mode'
-        self.client_secret = self.client_secret or 'domain_verification_mode'
-
-        self.console = Console()
+        # Initialize with proper error checking for credentials
+        if not self.client_key or not self.client_secret:
+            if not self.bypass_auth:
+                self.console.print("[red]Warning: TikTok credentials not found[/red]")
+                self.client_key = 'missing_key'
+                self.client_secret = 'missing_secret'
 
     @property
     def access_token(self) -> Optional[str]:
@@ -54,12 +56,12 @@ class TikTokAuth:
                 'client_key': self.client_key,
                 'redirect_uri': self.redirect_uri,
                 'response_type': 'code',
-                'scope': 'user.info.basic,video.list',
+                'scope': 'user.info.basic,video.list,user.info.profile,user.info.stats,video.publish,video.upload',
                 'state': csrf_state if csrf_state is not None else 'default_state'
             }
 
             auth_url = f"{self.auth_base_url}?{urlencode(params)}"
-            self.console.print(f"[green]Generated auth URL for development mode: {auth_url}[/green]")
+            self.console.print(f"[green]Generated auth URL: {auth_url}[/green]")
             return auth_url
         except Exception as e:
             self.console.print(f"[red]Error generating auth URL: {str(e)}[/red]")
@@ -81,6 +83,8 @@ class TikTokAuth:
             self.console.print("[red]Authorization code is required[/red]")
             return None
 
+        self.console.print(f"[blue]Attempting to get access token with code: {code[:10]}...[/blue]")
+
         while self.retry_count < self.max_retries:
             try:
                 async with aiohttp.ClientSession() as session:
@@ -92,26 +96,29 @@ class TikTokAuth:
                         'redirect_uri': self.redirect_uri
                     }
 
-                    self.console.print(f"[green]Attempting to get access token in development mode[/green]")
                     self.console.print(f"[blue]Using token URL: {self.token_url}[/blue]")
+                    self.console.print(f"[blue]Payload (masked): {{'client_key': '***', 'client_secret': '***', 'code': '{code[:10]}...', 'grant_type': '{payload['grant_type']}', 'redirect_uri': '{payload['redirect_uri']}' }}[/blue]")
 
                     async with session.post(self.token_url, data=payload) as response:
+                        response_text = await response.text()
+                        self.console.print(f"[blue]Response status: {response.status}[/blue]")
+                        self.console.print(f"[blue]Response body: {response_text}[/blue]")
+
                         if response.status == 200:
                             data = await response.json()
                             if 'data' in data and 'access_token' in data['data']:
                                 token_data = data['data']
                                 self._access_token = token_data['access_token']
-                                # Set token expiry (usually expires_in is in seconds)
                                 self._token_expiry = time.time() + token_data.get('expires_in', 3600)
                                 self.retry_count = 0  # Reset retry count on success
+                                self.console.print("[green]Successfully obtained access token[/green]")
                                 return token_data
                             self.console.print("[red]Invalid response format from TikTok API[/red]")
                         elif response.status == 429:  # Rate limit
                             await self._exponential_backoff()
                             continue
                         else:
-                            error_text = await response.text()
-                            self.console.print(f"[red]Auth failed: {response.status} - {error_text}[/red]")
+                            self.console.print(f"[red]Auth failed: {response.status} - {response_text}[/red]")
                         return None
 
             except aiohttp.ClientError as e:

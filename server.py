@@ -27,7 +27,7 @@ CORS(app, resources={r"/*": {"origins": allowed_origins}})
 
 # Register blueprints
 app.register_blueprint(static_pages)
-app.register_blueprint(auth_routes)
+app.register_blueprint(auth_routes, url_prefix='/auth')  # Ensure proper URL prefix
 
 # Initialize TikTok Auth
 auth = TikTokAuth()
@@ -76,7 +76,7 @@ def index():
             repl_owner = os.getenv('REPL_OWNER', '')
             deployment_url = f"https://{repl_slug}.{repl_owner}.repl.co"
             verification_callback = f"{deployment_url}/auth/tiktok/callback"
-            
+
             return render_template_string("""
                 <!DOCTYPE html>
                 <html>
@@ -478,27 +478,6 @@ def get_videos():
     except Exception as e:
         app.logger.error(f"Error fetching videos: {str(e)}")
         return jsonify({"error": "Failed to fetch videos"}), 500
-
-@app.route('/auth/callback')
-def auth_callback():
-    code = request.args.get('code')
-    if not code:
-        return jsonify({"error": "No authorization code provided"}), 400
-
-    try:
-        # Get access token
-        token_data = asyncio.run(auth.get_access_token(code))
-        if not token_data or 'access_token' not in token_data:
-            return jsonify({"error": "Failed to get access token"}), 400
-
-        # Store in session
-        session['access_token'] = token_data['access_token']
-        session['token_expiry'] = time.time() + token_data.get('expires_in', 3600)
-
-        return redirect(url_for('index'))
-    except Exception as e:
-        app.logger.error(f"Auth callback error: {str(e)}")
-        return jsonify({"error": "Authentication failed"}), 500
 
 @app.route('/download', methods=['POST'])
 def queue_download():
