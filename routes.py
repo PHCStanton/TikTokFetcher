@@ -11,14 +11,16 @@ auth_routes = Blueprint('auth', __name__, url_prefix='/auth')
 
 @auth_routes.route('/tiktok/callback')
 def tiktok_callback():
-    """Handle TikTok OAuth2 callback with V2 API support"""
+    """Handle TikTok OAuth2 callback"""
     code = request.args.get('code')
     state = request.args.get('state')
     error = request.args.get('error')
     error_description = request.args.get('error_description')
 
-    console.print(f"[blue]Received callback with code: {code[:10] if code else 'None'}[/blue]")
-    console.print(f"[blue]State: {state}, Error: {error}[/blue]")
+    console.print(f"[blue]Callback URL accessed[/blue]")
+    console.print(f"[blue]Full URL: {request.url}[/blue]")
+    console.print(f"[blue]Code received: {code[:10]}...[/blue]" if code else "[red]No code received[/red]")
+    console.print(f"[blue]State: {state}[/blue]")
 
     if error:
         console.print(f"[red]OAuth error: {error} - {error_description}[/red]")
@@ -64,7 +66,7 @@ def tiktok_callback():
         session['access_token'] = token_data['access_token']
         session['token_expiry'] = time.time() + token_data.get('expires_in', 3600)
 
-        console.print("[green]Successfully stored access token in session[/green]")
+        console.print("[green]Successfully obtained and stored access token[/green]")
 
         # Redirect to main page
         return redirect(url_for('index'))
