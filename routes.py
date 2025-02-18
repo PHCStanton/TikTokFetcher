@@ -18,9 +18,16 @@ def tiktok_callback():
     error_description = request.args.get('error_description')
 
     console.print(f"[blue]Callback URL accessed[/blue]")
+    console.print(f"[blue]Request host: {request.host}[/blue]")
     console.print(f"[blue]Full URL: {request.url}[/blue]")
-    console.print(f"[blue]Code received: {code[:10]}...[/blue]" if code else "[red]No code received[/red]")
-    console.print(f"[blue]State: {state}[/blue]")
+
+    # Verify domain
+    auth = TikTokAuth()
+    if not auth.verify_request_domain(request.host):
+        return render_template_string("""
+            <h1>Domain Error</h1>
+            <p>Please access this application through https://app.tiktokrescue.online</p>
+        """)
 
     if error:
         console.print(f"[red]OAuth error: {error} - {error_description}[/red]")

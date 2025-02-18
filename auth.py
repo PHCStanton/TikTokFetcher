@@ -11,8 +11,7 @@ class TikTokAuth:
         self.client_key = os.getenv('TIKTOK_CLIENT_KEY')
         self.client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
         self.bypass_auth = os.getenv('BYPASS_AUTH', 'false').lower() == 'true'
-        self.is_development = False  # Set to production mode
-        self.is_sandbox = False  # Disable sandbox mode for production
+        self.is_development = os.environ.get('REPLIT_DEPLOYMENT') != '1'
         self.retry_count = 0
         self.max_retries = 3
         self.base_delay = 2
@@ -20,17 +19,34 @@ class TikTokAuth:
         self._token_expiry = None
         self.console = Console()
 
-        # Set callback URL for production with exact domain
-        self.redirect_uri = "https://app.tiktokrescue.online/auth/tiktok/callback"
+        # Set domain based on environment
+        self.production_domain = "app.tiktokrescue.online"
+        if self.is_development:
+            repl_slug = os.environ.get('REPL_SLUG', '')
+            repl_owner = os.environ.get('REPL_OWNER', '')
+            self.redirect_uri = f"https://{repl_slug}.{repl_owner}.repl.co/auth/tiktok/callback"
+            self.console.print(f"[yellow]Running in development mode with callback: {self.redirect_uri}[/yellow]")
+        else:
+            self.redirect_uri = f"https://{self.production_domain}/auth/tiktok/callback"
+            self.console.print(f"[green]Running in production mode with callback: {self.redirect_uri}[/green]")
+
         self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
         self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
 
-        # Initialize with proper error checking for credentials
         if not self.client_key or not self.client_secret:
             if not self.bypass_auth:
                 self.console.print("[red]Warning: TikTok credentials not found[/red]")
-                self.console.print(f"[yellow]Using redirect URI: {self.redirect_uri}[/yellow]")
                 raise ValueError("TikTok API credentials are required")
+
+    def verify_request_domain(self, request_host):
+        """Verify that the request is coming from the correct domain"""
+        if self.is_development:
+            return True
+
+        if request_host != self.production_domain:
+            self.console.print(f"[red]Domain mismatch: {request_host} != {self.production_domain}[/red]")
+            return False
+        return True
 
     @property
     def access_token(self) -> Optional[str]:

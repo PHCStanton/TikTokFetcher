@@ -10,20 +10,42 @@ import threading
 from collections import deque
 from queue import Queue
 import time
+from rich.console import Console
 
+console = Console()
 app = Flask(__name__)
-app.secret_key = os.urandom(24)  # Add secret key for sessions
+app.secret_key = os.urandom(24)
 
-# Force production mode
+# Force production mode and domain
+PRODUCTION_DOMAIN = "app.tiktokrescue.online"
 is_development = False
 
+# Domain verification middleware
+@app.before_request
+def verify_domain():
+    # Skip domain verification in development
+    if os.environ.get('REPLIT_DEPLOYMENT') != '1':
+        return None
+
+    if request.host != PRODUCTION_DOMAIN:
+        production_url = f"https://{PRODUCTION_DOMAIN}{request.path}"
+        console.print(f"[yellow]Redirecting to production domain: {production_url}[/yellow]")
+        return redirect(production_url, code=301)
+
 # Set up CORS for production domain
-allowed_origins = ["https://app.tiktokrescue.online"]
+allowed_origins = [f"https://{PRODUCTION_DOMAIN}"]
+if os.environ.get('REPLIT_DEPLOYMENT') != '1':
+    # Add development domains when not in production
+    repl_slug = os.environ.get('REPL_SLUG', '')
+    repl_owner = os.environ.get('REPL_OWNER', '')
+    allowed_origins.append(f"https://{repl_slug}.{repl_owner}.repl.co")
+
+console.print(f"[blue]Allowed CORS origins: {allowed_origins}[/blue]")
 CORS(app, resources={r"/*": {"origins": allowed_origins}})
 
-# Register blueprints with correct prefix
+# Register blueprints
 app.register_blueprint(static_pages)
-app.register_blueprint(auth_routes, url_prefix='/auth')  # Ensure proper URL prefix
+app.register_blueprint(auth_routes, url_prefix='/auth')
 
 # Initialize TikTok Auth
 auth = TikTokAuth()
