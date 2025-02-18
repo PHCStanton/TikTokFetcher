@@ -19,7 +19,7 @@ class TikTokAuth:
         self._access_token = None
         self._token_expiry = None
 
-        # Set up production endpoints
+        # Set up production endpoints with verified domain
         self.redirect_uri = "https://app.tiktokrescue.online/auth/tiktok/callback"
         self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
         self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
