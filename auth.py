@@ -20,9 +20,8 @@ class TikTokAuth:
         self._token_expiry = None
         self.console = Console()
 
-        # Set callback URL for production
-        domain = os.getenv('TIKTOK_BASE_DOMAIN', 'app.tiktokrescue.online')
-        self.redirect_uri = f"https://{domain}/auth/tiktok/callback"
+        # Set callback URL for production with exact domain
+        self.redirect_uri = "https://app.tiktokrescue.online/auth/tiktok/callback"
         self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
         self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
 
@@ -30,7 +29,7 @@ class TikTokAuth:
         if not self.client_key or not self.client_secret:
             if not self.bypass_auth:
                 self.console.print("[red]Warning: TikTok credentials not found[/red]")
-                self.console.print(f"[yellow]Redirect URI: {self.redirect_uri}[/yellow]")
+                self.console.print(f"[yellow]Using redirect URI: {self.redirect_uri}[/yellow]")
                 raise ValueError("TikTok API credentials are required")
 
     @property

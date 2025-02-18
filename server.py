@@ -17,15 +17,11 @@ app.secret_key = os.urandom(24)  # Add secret key for sessions
 # Force production mode
 is_development = False
 
-# Set up CORS for development
-repl_slug = os.getenv('REPL_SLUG', '')
-repl_owner = os.getenv('REPL_OWNER', '')
-allowed_origins = [f"https://{repl_slug}.{repl_owner}.repl.dev"]
-
-# Enable CORS for specific origins in production
+# Set up CORS for production domain
+allowed_origins = ["https://app.tiktokrescue.online"]
 CORS(app, resources={r"/*": {"origins": allowed_origins}})
 
-# Register blueprints
+# Register blueprints with correct prefix
 app.register_blueprint(static_pages)
 app.register_blueprint(auth_routes, url_prefix='/auth')  # Ensure proper URL prefix
 
