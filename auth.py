@@ -19,10 +19,8 @@ class TikTokAuth:
         self._access_token = None
         self._token_expiry = None
 
-        # Set up sandbox endpoints
-        repl_id = os.getenv('REPL_ID', '')
-        repl_slug = os.getenv('REPL_SLUG', '')
-        self.redirect_uri = f"https://{repl_slug}.{repl_id}.repl.co/auth/tiktok/callback"
+        # Set up production endpoints
+        self.redirect_uri = "https://app.tiktokrescue.online/auth/tiktok/callback"
         self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
         self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
 
