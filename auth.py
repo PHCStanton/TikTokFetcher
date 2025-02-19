@@ -20,7 +20,7 @@ class TikTokAuth:
         self.console = Console()
 
         # Set domain based on environment
-        self.production_domain = "app.tiktokrescue.online"
+        self.production_domain = os.getenv('TIKTOK_BASE_DOMAIN', 'tik-tok-fetcher-pieterstanton.replit.app')
         if self.is_development:
             repl_slug = os.environ.get('REPL_SLUG', '')
             repl_owner = os.environ.get('REPL_OWNER', '')
