@@ -24,7 +24,8 @@ is_development = os.getenv('DEVELOPMENT_MODE', 'true').lower() == 'true'
 @app.before_request
 def verify_domain():
     if request.path == '/.well-known/tiktok-domain-verification.txt':
-        return Response('Hl2FLqA7XY2ryMlN8E6Fv8vtwqJCflZR', mimetype='text/plain')
+        # This mimics the DNS TXT record verification
+        return Response('tiktok-developers-site-verification=Hl2FLqA7XY2ryMlN8E6Fv8vtwqJCflZR', mimetype='text/plain')
 
     # Remove any redirect logic
     return None

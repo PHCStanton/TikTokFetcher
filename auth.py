@@ -11,7 +11,7 @@ class TikTokAuth:
         self.client_key = os.getenv('TIKTOK_CLIENT_KEY')
         self.client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
         self.bypass_auth = os.getenv('BYPASS_AUTH', 'false').lower() == 'true'
-        self.is_development = os.environ.get('REPLIT_DEPLOYMENT') != '1'
+        self.is_development = True  # Force development mode for testing
         self.retry_count = 0
         self.max_retries = 3
         self.base_delay = 2
