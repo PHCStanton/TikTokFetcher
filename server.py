@@ -16,25 +16,17 @@ console = Console()
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-# Force production mode and domain
-PRODUCTION_DOMAIN = "app.tiktokrescue.online"
+# Set domain for TikTok verification
+PRODUCTION_DOMAIN = "tik-tok-fetcher-pieterstanton.replit.app"
 is_development = False
 
 # Domain verification middleware
 @app.before_request
 def verify_domain():
-    # Skip domain verification in development
-    if os.environ.get('REPLIT_DEPLOYMENT') != '1':
-        return None
-        
     # TikTok domain verification
     if request.path == '/.well-known/tiktok-domain-verification.txt':
         return Response('Hl2FLqA7XY2ryMlN8E6Fv8vtwqJCflZR', mimetype='text/plain')
-        
-    if request.host != PRODUCTION_DOMAIN:
-        production_url = f"https://{PRODUCTION_DOMAIN}{request.path}"
-        console.print(f"[yellow]Redirecting to production domain: {production_url}[/yellow]")
-        return redirect(production_url, code=301)
+    return None
 
 # Set up CORS for production domain
 allowed_origins = [f"https://{PRODUCTION_DOMAIN}"]
