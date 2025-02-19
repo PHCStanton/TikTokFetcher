@@ -26,7 +26,11 @@ def verify_domain():
     # Skip domain verification in development
     if os.environ.get('REPLIT_DEPLOYMENT') != '1':
         return None
-
+        
+    # TikTok domain verification
+    if request.path == '/.well-known/tiktok-domain-verification.txt':
+        return 'Hl2FLqA7XY2ryMlN8E6Fv8vtwqJCflZR'
+        
     if request.host != PRODUCTION_DOMAIN:
         production_url = f"https://{PRODUCTION_DOMAIN}{request.path}"
         console.print(f"[yellow]Redirecting to production domain: {production_url}[/yellow]")
