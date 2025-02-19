@@ -29,7 +29,7 @@ def verify_domain():
         
     # TikTok domain verification
     if request.path == '/.well-known/tiktok-domain-verification.txt':
-        return 'Hl2FLqA7XY2ryMlN8E6Fv8vtwqJCflZR'
+        return Response('Hl2FLqA7XY2ryMlN8E6Fv8vtwqJCflZR', mimetype='text/plain')
         
     if request.host != PRODUCTION_DOMAIN:
         production_url = f"https://{PRODUCTION_DOMAIN}{request.path}"
