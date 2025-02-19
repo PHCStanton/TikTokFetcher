@@ -1,11 +1,11 @@
 import asyncio
-from flask import Flask, render_template_string, request, redirect, url_for, jsonify, session
+import os
+from datetime import datetime, timedelta
+from flask import Flask, render_template_string, request, redirect, url_for, jsonify, session, Response
 from flask_cors import CORS
 from routes import static_pages, auth_routes
 from auth import TikTokAuth
 from downloader import TikTokDownloader
-import os
-from datetime import datetime, timedelta
 import threading
 from collections import deque
 from queue import Queue
@@ -16,25 +16,25 @@ console = Console()
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-# Set domain for TikTok verification
-PRODUCTION_DOMAIN = "tik-tok-fetcher-pieterstanton.replit.app"
-is_development = False
+# Set domain for development/production
+PRODUCTION_DOMAIN = os.getenv('TIKTOK_BASE_DOMAIN', 'tik-tok-fetcher-pieterstanton.replit.app')
+is_development = os.getenv('DEVELOPMENT_MODE', 'true').lower() == 'true'
 
 # Domain verification middleware
 @app.before_request
 def verify_domain():
-    # TikTok domain verification
     if request.path == '/.well-known/tiktok-domain-verification.txt':
         return Response('Hl2FLqA7XY2ryMlN8E6Fv8vtwqJCflZR', mimetype='text/plain')
     return None
 
-# Set up CORS for production domain
+# Set up CORS for all domains during development
 allowed_origins = [f"https://{PRODUCTION_DOMAIN}"]
-if os.environ.get('REPLIT_DEPLOYMENT') != '1':
-    # Add development domains when not in production
-    repl_slug = os.environ.get('REPL_SLUG', '')
-    repl_owner = os.environ.get('REPL_OWNER', '')
-    allowed_origins.append(f"https://{repl_slug}.{repl_owner}.repl.co")
+if is_development:
+    allowed_origins.extend([
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        f"https://{os.getenv('REPL_SLUG', '')}.{os.getenv('REPL_OWNER', '')}.repl.co"
+    ])
 
 console.print(f"[blue]Allowed CORS origins: {allowed_origins}[/blue]")
 CORS(app, resources={r"/*": {"origins": allowed_origins}})
@@ -555,7 +555,7 @@ def get_status():
 
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
+    port = int(os.environ.get('PORT', 3000))  # Changed default port to 3000
     # Use production configuration when deployed
     if os.getenv('REPLIT_DEPLOYMENT') == '1':
         app.run(host='0.0.0.0', port=port, debug=False)

@@ -21,13 +21,14 @@ def tiktok_callback():
     console.print(f"[blue]Request host: {request.host}[/blue]")
     console.print(f"[blue]Full URL: {request.url}[/blue]")
 
-    # Verify domain
+    # Don't verify domain in development mode
     auth = TikTokAuth()
-    if not auth.verify_request_domain(request.host):
-        return render_template_string("""
-            <h1>Domain Error</h1>
-            <p>Please access this application through https://app.tiktokrescue.online</p>
-        """)
+    if os.getenv('DEVELOPMENT_MODE', 'true').lower() == 'false':
+        if not auth.verify_request_domain(request.host):
+            return render_template_string("""
+                <h1>Domain Error</h1>
+                <p>Please access this application through the correct domain.</p>
+            """)
 
     if error:
         console.print(f"[red]OAuth error: {error} - {error_description}[/red]")
