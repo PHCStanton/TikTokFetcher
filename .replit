@@ -46,7 +46,7 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python server.py"
-waitForPort = 3000
+waitForPort = 8080
 
 [deployment]
 run = ["sh", "-c", "python server.py"]

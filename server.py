@@ -16,21 +16,30 @@ console = Console()
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
-# Set domain for development/production
-PRODUCTION_DOMAIN = os.getenv('TIKTOK_BASE_DOMAIN', 'tik-tok-fetcher-pieterstanton.replit.app')
+# Set domain for production
+PRODUCTION_DOMAIN = os.getenv('TIKTOK_BASE_DOMAIN', 'app.tiktokrescue.online')
 is_development = os.getenv('DEVELOPMENT_MODE', 'true').lower() == 'true'
 
-# Remove domain verification completely
+# Domain verification middleware
 @app.before_request
 def verify_domain():
-    # Only keep TikTok verification endpoint
-    if request.path == '/.well-known/tiktok-domain-verification.txt':
-        # This mimics the DNS TXT record verification
-        return Response('tiktok-developers-site-verification=Hl2FLqA7XY2ryMlN8E6Fv8vtwqJCflZR', mimetype='text/plain')
+    # Only verify in production mode
+    if not is_development:
+        if request.path == '/.well-known/tiktok-domain-verification.txt':
+            return Response('tiktok-developers-site-verification=Hl2FLqA7XY2ryMlN8E6Fv8vtwqJCflZR', mimetype='text/plain')
+
+        if request.host != PRODUCTION_DOMAIN:
+            return render_template_string("""
+                <h1>Domain Error</h1>
+                <p>Please access this application through https://app.tiktokrescue.online</p>
+            """)
     return None
 
-# Set up CORS for all domains during development
-allowed_origins = ["*"]  # Allow all origins for testing
+# Set up CORS for production domain
+allowed_origins = [f"https://{PRODUCTION_DOMAIN}"]
+if is_development:
+    allowed_origins.append("*")
+
 CORS(app, resources={r"/*": {"origins": allowed_origins}})
 
 # Register blueprints
@@ -549,9 +558,11 @@ def get_status():
 
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 3000))  # Changed default port to 3000
+    # Get port from environment or use 8080 as default (changed from 3000)
+    port = int(os.environ.get('PORT', 8080))
+
     # Use production configuration when deployed
     if os.getenv('REPLIT_DEPLOYMENT') == '1':
         app.run(host='0.0.0.0', port=port, debug=False)
     else:
-        app.run(host='0.0.0.0', port=port, debug=True, use_reloader=False)
+        app.run(host='0.0.0.0', port=port, debug=True)

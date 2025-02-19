@@ -11,7 +11,7 @@ class TikTokAuth:
         self.client_key = os.getenv('TIKTOK_CLIENT_KEY')
         self.client_secret = os.getenv('TIKTOK_CLIENT_SECRET')
         self.bypass_auth = os.getenv('BYPASS_AUTH', 'false').lower() == 'true'
-        self.is_development = True  # Force development mode for testing
+        self.is_development = os.getenv('DEVELOPMENT_MODE', 'true').lower() == 'true'
         self.retry_count = 0
         self.max_retries = 3
         self.base_delay = 2
@@ -19,11 +19,12 @@ class TikTokAuth:
         self._token_expiry = None
         self.console = Console()
 
-        # Use Replit domain directly for testing
-        repl_slug = os.environ.get('REPL_SLUG', '')
-        repl_owner = os.environ.get('REPL_OWNER', '')
-        self.redirect_uri = f"https://{repl_slug}.{repl_owner}.repl.co/auth/tiktok/callback"
-        self.console.print(f"[yellow]Using callback URL: {self.redirect_uri}[/yellow]")
+        # Set domain based on environment
+        self.base_domain = os.getenv('TIKTOK_BASE_DOMAIN', 'app.tiktokrescue.online')
+
+        # Construct redirect URI based on environment
+        self.redirect_uri = f"https://{self.base_domain}/auth/tiktok/callback"
+        self.console.print(f"[green]Using callback URL: {self.redirect_uri}[/green]")
 
         self.auth_base_url = "https://www.tiktok.com/v2/auth/authorize/"
         self.token_url = "https://open-api.tiktok.com/oauth/access_token/"
@@ -34,7 +35,13 @@ class TikTokAuth:
                 raise ValueError("TikTok API credentials are required")
 
     def verify_request_domain(self, request_host):
-        """Always return True for testing"""
+        """Verify that the request is coming from the correct domain"""
+        if self.is_development:
+            return True
+
+        if request_host != self.base_domain:
+            self.console.print(f"[red]Domain mismatch: {request_host} != {self.base_domain}[/red]")
+            return False
         return True
 
     @property
