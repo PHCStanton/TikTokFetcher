@@ -76,8 +76,9 @@ def tiktok_callback():
 
         console.print("[green]Successfully obtained and stored access token[/green]")
 
-        # Redirect to main page
-        return redirect(url_for('index'))
+        #Instead of redirecting, return a success message or data.  Consider a JSON response for AJAX.
+        return jsonify({"message": "Authentication successful"})
+
 
     except Exception as e:
         console.print(f"[red]Authentication error: {str(e)}[/red]")

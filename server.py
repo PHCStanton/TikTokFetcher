@@ -20,12 +20,16 @@ app.secret_key = os.urandom(24)
 PRODUCTION_DOMAIN = os.getenv('TIKTOK_BASE_DOMAIN', 'tik-tok-fetcher-pieterstanton.replit.app')
 is_development = os.getenv('DEVELOPMENT_MODE', 'true').lower() == 'true'
 
-# Domain verification middleware
+# Update the domain verification middleware to prevent redirects
 @app.before_request
 def verify_domain():
     if request.path == '/.well-known/tiktok-domain-verification.txt':
         return Response('Hl2FLqA7XY2ryMlN8E6Fv8vtwqJCflZR', mimetype='text/plain')
+
+    # Remove any redirect logic
     return None
+
+# Update CORS configuration
 
 # Set up CORS for all domains during development
 allowed_origins = [f"https://{PRODUCTION_DOMAIN}"]
