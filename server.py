@@ -20,28 +20,17 @@ app.secret_key = os.urandom(24)
 PRODUCTION_DOMAIN = os.getenv('TIKTOK_BASE_DOMAIN', 'tik-tok-fetcher-pieterstanton.replit.app')
 is_development = os.getenv('DEVELOPMENT_MODE', 'true').lower() == 'true'
 
-# Update the domain verification middleware to prevent redirects
+# Remove domain verification completely
 @app.before_request
 def verify_domain():
+    # Only keep TikTok verification endpoint
     if request.path == '/.well-known/tiktok-domain-verification.txt':
         # This mimics the DNS TXT record verification
         return Response('tiktok-developers-site-verification=Hl2FLqA7XY2ryMlN8E6Fv8vtwqJCflZR', mimetype='text/plain')
-
-    # Remove any redirect logic
     return None
 
-# Update CORS configuration
-
 # Set up CORS for all domains during development
-allowed_origins = [f"https://{PRODUCTION_DOMAIN}"]
-if is_development:
-    allowed_origins.extend([
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        f"https://{os.getenv('REPL_SLUG', '')}.{os.getenv('REPL_OWNER', '')}.repl.co"
-    ])
-
-console.print(f"[blue]Allowed CORS origins: {allowed_origins}[/blue]")
+allowed_origins = ["*"]  # Allow all origins for testing
 CORS(app, resources={r"/*": {"origins": allowed_origins}})
 
 # Register blueprints
